@@ -18,7 +18,7 @@ CLIENTS = {}
 # Aktif oturumlar: client_id -> connected_with_client_id
 SESSIONS = {}
 
-# Mobil Web Arayüzü HTML5 Kodu (PWA Destekli)
+# Mobil Web Arayüzü HTML5 Kodu (PWA & Donanımsal Hızlandırma Destekli)
 MOBILE_HTML = """<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -50,7 +50,8 @@ MOBILE_HTML = """<!DOCTYPE html>
 
         /* Canlı Ekran Görünümü */
         #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; }
-        #canvas { display: block; width: 100vw; height: 100vh; object-fit: contain; }
+        #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        #screen-img { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
         
         /* Floating Araç Çubuğu */
         .toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.9); border: 1px solid #3f3f46; border-radius: 30px; padding: 6px 14px; display: flex; gap: 12px; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
@@ -58,6 +59,9 @@ MOBILE_HTML = """<!DOCTYPE html>
         .tool-btn:active { color: #f59e0b; }
         .tool-btn.disconnect { color: #ef4444; }
         #hidden-input { position: absolute; top: -100px; left: -100px; opacity: 0; }
+        
+        /* Canlı Durum Rozeti */
+        #debug-pill { position: absolute; bottom: 12px; left: 12px; background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; pointer-events: none; z-index: 100; }
     </style>
 </head>
 <body>
@@ -100,7 +104,10 @@ MOBILE_HTML = """<!DOCTYPE html>
             <button class="tool-btn" onclick="toggleFullscreen()" title="Tam Ekran">⛶</button>
             <button class="tool-btn disconnect" onclick="disconnect()" title="Bağlantıyı Kes">✕</button>
         </div>
-        <canvas id="canvas"></canvas>
+        <div id="screen-container">
+            <img id="screen-img" alt="Canlı Ekran">
+        </div>
+        <div id="debug-pill">● Görüntü bekleniyor...</div>
         <input type="text" id="hidden-input" autocomplete="off" autocapitalize="off">
     </div>
 
@@ -110,13 +117,15 @@ MOBILE_HTML = """<!DOCTYPE html>
         let ws = null;
         let myId = "MOB " + Math.floor(100 + Math.random() * 900) + " " + Math.floor(100 + Math.random() * 900);
         let targetId = null;
-        let canvas = document.getElementById("canvas");
-        let ctx = canvas.getContext("2d");
+        let screenImg = document.getElementById("screen-img");
+        let debugPill = document.getElementById("debug-pill");
         let hiddenInput = document.getElementById("hidden-input");
+        let frameCount = 0;
+        let currentUrl = null;
 
         function connectWs() {
             ws = new WebSocket(wsUrl);
-            ws.binaryType = "blob";
+            ws.binaryType = "arraybuffer";
 
             ws.onopen = () => {
                 document.getElementById("status").innerText = "● Buluta Hazır (Kimlik girip bağlanabilirsiniz)";
@@ -124,44 +133,39 @@ MOBILE_HTML = """<!DOCTYPE html>
                 ws.send(JSON.stringify({ type: "register", client_id: myId }));
             };
 
-            ws.onmessage = async (e) => {
-                if (e.data instanceof Blob) {
-                    const header = await e.data.slice(0, 6).text();
-                    if (header === "FRAME:") {
-                        const imgBlob = new Blob([e.data.slice(6)], { type: "image/jpeg" });
-                        try {
-                            if (window.createImageBitmap) {
-                                const bmp = await createImageBitmap(imgBlob);
-                                if (canvas.width !== bmp.width || canvas.height !== bmp.height) {
-                                    canvas.width = bmp.width;
-                                    canvas.height = bmp.height;
-                                }
-                                ctx.drawImage(bmp, 0, 0);
-                            } else {
-                                const imgUrl = URL.createObjectURL(imgBlob);
-                                const img = new Image();
-                                img.onload = () => {
-                                    if (canvas.width !== img.width || canvas.height !== img.height) {
-                                        canvas.width = img.width;
-                                        canvas.height = img.height;
-                                    }
-                                    ctx.drawImage(img, 0, 0);
-                                    URL.revokeObjectURL(imgUrl);
-                                };
-                                img.src = imgUrl;
+            ws.onmessage = (e) => {
+                // 1. Canlı Görüntü Karesi (Binary ArrayBuffer)
+                if (e.data instanceof ArrayBuffer) {
+                    const u8 = new Uint8Array(e.data);
+                    // "FRAME:" Kontrolü (ASCII 70, 82, 65, 77, 69, 58)
+                    if (u8.length > 6 && u8[0] === 70 && u8[1] === 82 && u8[2] === 65 && u8[3] === 77 && u8[4] === 69 && u8[5] === 58) {
+                        const jpegData = e.data.slice(6);
+                        const blob = new Blob([jpegData], { type: "image/jpeg" });
+                        const newUrl = URL.createObjectURL(blob);
+                        
+                        const oldUrl = currentUrl;
+                        currentUrl = newUrl;
+                        
+                        screenImg.onload = () => {
+                            if (oldUrl) {
+                                URL.revokeObjectURL(oldUrl);
                             }
-                        } catch (err) {
-                            console.error("Frame render hatası:", err);
-                        }
+                        };
+                        screenImg.src = newUrl;
+                        
+                        frameCount++;
+                        debugPill.innerText = `● Canlı (${frameCount} kare)`;
                     }
                     return;
                 }
 
+                // 2. JSON Sinyal Mesajları
                 const data = JSON.parse(e.data);
                 if (data.type === "connection_result") {
                     if (data.accepted) {
                         document.getElementById("login-view").style.display = "none";
                         document.getElementById("viewer-view").style.display = "block";
+                        debugPill.innerText = "● Bağlantı kuruldu, ekran bekleniyor...";
                     } else {
                         document.getElementById("status").innerText = "❌ Bilgisayar bağlantıyı reddetti.";
                         document.getElementById("status").style.color = "#ef4444";
@@ -214,14 +218,14 @@ MOBILE_HTML = """<!DOCTYPE html>
 
         /* Dokunmatik Kontroller (Touchpad) */
         function getCoords(e) {
-            const rect = canvas.getBoundingClientRect();
+            const rect = screenImg.getBoundingClientRect();
             const touch = e.touches[0] || e.changedTouches[0];
             const rx = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
             const ry = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
             return { rx, ry };
         }
 
-        canvas.addEventListener("touchstart", (e) => {
+        screenImg.addEventListener("touchstart", (e) => {
             const coords = getCoords(e);
             ws.send(JSON.stringify({
                 type: "input_event",
@@ -230,7 +234,7 @@ MOBILE_HTML = """<!DOCTYPE html>
             }));
         });
 
-        canvas.addEventListener("touchmove", (e) => {
+        screenImg.addEventListener("touchmove", (e) => {
             e.preventDefault();
             const coords = getCoords(e);
             ws.send(JSON.stringify({
@@ -240,7 +244,7 @@ MOBILE_HTML = """<!DOCTYPE html>
             }));
         }, { passive: false });
 
-        canvas.addEventListener("touchend", (e) => {
+        screenImg.addEventListener("touchend", (e) => {
             const coords = getCoords(e);
             // Sol Tıklama Gönder
             ws.send(JSON.stringify({
