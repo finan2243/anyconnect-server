@@ -1,5 +1,6 @@
 """
 AnyDesk Klonu - Merkezi Eşleştirme, Aktarma ve Mobil Web Sunucusu (Signaling, Relay & Mobile Web)
+AnyDesk Mobil Teması & Donanımsal İmleç Desteği
 """
 
 import asyncio
@@ -18,81 +19,121 @@ CLIENTS = {}
 # Aktif oturumlar: client_id -> connected_with_client_id
 SESSIONS = {}
 
-# Mobil Web Arayüzü HTML5 Kodu (PWA & Donanımsal Hızlandırma Destekli)
+# Mobil Web Arayüzü (Birebir AnyDesk iOS / Android Tasarımı)
 MOBILE_HTML = """<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hanedan Uzaktan Masaüstü</title>
+    <title>Hanedan AnyDesk</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="Hanedan">
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text x='50' y='70' font-size='60' font-weight='bold' fill='%23f59e0b' text-anchor='middle'>H</text></svg>">
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ef4444'/><path d='M35 50 L50 35 L65 50 L50 65 Z' fill='white'/></svg>">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #121214; color: #f4f4f5; height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
-        
-        /* Giriş ve Bağlantı Paneli */
-        #login-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
-        .logo-box { width: 80px; height: 80px; border-radius: 20px; background: #27272a; border: 2px solid #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 42px; font-weight: bold; color: #f59e0b; margin-bottom: 16px; box-shadow: 0 8px 24px rgba(245, 158, 11, 0.2); }
-        .title { font-size: 20px; font-weight: bold; color: #f59e0b; margin-bottom: 4px; text-align: center; }
-        .subtitle { font-size: 13px; color: #71717a; margin-bottom: 24px; text-align: center; }
-        .card { width: 100%; max-width: 360px; background: #18181b; border: 1px solid #27272a; border-radius: 16px; padding: 20px; }
-        .field { margin-bottom: 14px; }
-        .field label { display: block; font-size: 12px; font-weight: 600; color: #a1a1aa; margin-bottom: 6px; }
-        .field input, .field select { width: 100%; height: 44px; background: #27272a; border: 1px solid #3f3f46; border-radius: 10px; color: #ffffff; padding: 0 12px; font-size: 15px; outline: none; }
-        .field input:focus { border-color: #f59e0b; }
-        .field input.target-id { font-family: monospace; font-size: 20px; font-weight: bold; text-align: center; letter-spacing: 2px; color: #f59e0b; }
-        .btn-connect { width: 100%; height: 48px; background: #f59e0b; color: #000000; border: none; border-radius: 12px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 8px; }
-        .btn-connect:active { opacity: 0.85; transform: scale(0.98); }
-        .status-text { font-size: 12px; color: #e4e4e7; text-align: center; margin-top: 14px; min-height: 18px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background-color: #f7f8fa; color: #18181b; height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* Canlı Ekran Görünümü */
-        #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; }
-        #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; }
+        /* Üst Header */
+        .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #f0f1f3; }
+        .header-left { width: 32px; height: 32px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; }
+        .header-left svg { width: 18px; height: 18px; fill: #ffffff; }
+        .header-title { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 700; color: #18181b; }
+        .header-title .diamond { color: #ef4444; font-size: 22px; }
+        .header-menu { background: none; border: none; font-size: 22px; color: #3f3f46; cursor: pointer; }
+
+        /* Ana Sayfa Gövdesi */
+        #login-view { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; }
+        
+        /* Uzak Adresi Gir Arama Kartı */
+        .search-card { background: #ffffff; border: 1.5px solid #e4e4e7; border-radius: 14px; padding: 6px 14px; display: flex; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.04); margin-bottom: 22px; }
+        .search-input { flex: 1; height: 46px; border: none; outline: none; font-size: 18px; color: #18181b; background: transparent; }
+        .search-input::placeholder { color: #a1a1aa; font-weight: 400; }
+        .btn-go { width: 38px; height: 38px; border-radius: 50%; background: #ef4444; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .btn-go svg { width: 18px; height: 18px; fill: #ffffff; }
+        .btn-go:active { transform: scale(0.92); }
+
+        /* Sizin Adresiniz Alanı */
+        .my-address-box { text-align: center; margin-bottom: 22px; position: relative; }
+        .my-address-lbl { font-size: 13px; color: #71717a; margin-bottom: 4px; }
+        .my-address-num { font-size: 28px; font-weight: 800; color: #ef4444; letter-spacing: 1px; }
+        .my-address-menu { position: absolute; right: 8px; top: 12px; font-size: 20px; color: #71717a; }
+
+        /* Sekmeler (Tabs) */
+        .tabs-pill { display: flex; background: #ebecee; border-radius: 12px; padding: 3px; margin-bottom: 18px; }
+        .tab-btn { flex: 1; height: 34px; background: transparent; border: none; border-radius: 10px; font-size: 15px; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .tab-btn.active { background: #ffffff; color: #18181b; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+
+        /* Cihaz Geçmişi Listesi */
+        .recent-list { display: flex; flex-direction: column; gap: 12px; flex: 1; }
+        .device-card { background: #ffffff; border: 1px solid #f0f1f3; border-radius: 14px; padding: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); cursor: pointer; position: relative; }
+        .device-card:active { background: #f4f4f5; }
+        .device-thumb { width: 110px; height: 68px; border-radius: 8px; background: #18181b; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .device-thumb img { width: 100%; height: 100%; object-fit: cover; }
+        .badge-check { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold; }
+        .badge-star { position: absolute; top: 6px; right: 6px; color: #eab308; font-size: 14px; }
+        .device-info { flex: 1; }
+        .device-id { font-size: 17px; font-weight: 700; color: #18181b; letter-spacing: 0.5px; }
+        .device-sub { font-size: 12px; color: #71717a; margin-top: 2px; }
+        .card-menu { padding: 8px; font-size: 18px; color: #a1a1aa; }
+
+        /* CANLI EKRAN (Viewer) */
+        #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; z-index: 1000; }
+        #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
         #screen-img { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
-        
-        /* Floating Araç Çubuğu */
-        .toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.9); border: 1px solid #3f3f46; border-radius: 30px; padding: 6px 14px; display: flex; gap: 12px; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
-        .tool-btn { background: transparent; border: none; color: #ffffff; font-size: 18px; padding: 6px; border-radius: 8px; cursor: pointer; }
+
+        /* Sanal Fare İmleci (Ekranda Parmakla Dolaşan Ok) */
+        #virtual-cursor { position: absolute; top: 0; left: 0; width: 26px; height: 26px; pointer-events: none; z-index: 9999; transform: translate(-2px, -2px); display: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition: transform 0.04s ease-out; }
+        #click-ripple { position: absolute; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #f59e0b; pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; }
+
+        /* Canlı Oturum Araç Çubuğu */
+        .toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.9); border: 1px solid #3f3f46; border-radius: 30px; padding: 6px 16px; display: flex; gap: 14px; align-items: center; z-index: 10001; backdrop-filter: blur(10px); }
+        .tool-btn { background: transparent; border: none; color: #ffffff; font-size: 20px; padding: 4px; border-radius: 8px; cursor: pointer; }
         .tool-btn:active { color: #f59e0b; }
-        .tool-btn.disconnect { color: #ef4444; }
+        .tool-btn.disconnect { color: #ef4444; font-size: 22px; font-weight: bold; }
+        #debug-pill { position: absolute; bottom: 12px; left: 12px; background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; pointer-events: none; z-index: 10001; }
         #hidden-input { position: absolute; top: -100px; left: -100px; opacity: 0; }
-        
-        /* Canlı Durum Rozeti */
-        #debug-pill { position: absolute; bottom: 12px; left: 12px; background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; pointer-events: none; z-index: 100; }
     </style>
 </head>
 <body>
 
-    <!-- GİRİŞ VE BAĞLANTI EKRANI -->
-    <div id="login-view">
-        <div class="logo-box">H</div>
-        <div class="title">HANEDAN UZAKTAN ERİŞİM</div>
-        <div class="subtitle">Mobil Cihazdan Masaüstü Kontrolü</div>
+    <!-- ANYDESK MOBİL ANA SAYFASI -->
+    <div class="app-header">
+        <div class="header-left">
+            <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2v-2zm0-10h2v8h-2V6z"/></svg>
+        </div>
+        <div class="header-title">
+            <span class="diamond">◆</span> Hanedan
+        </div>
+        <button class="header-menu">≡</button>
+    </div>
 
-        <div class="card">
-            <div class="field">
-                <label>Şirket</label>
-                <select id="sel-sirket">
-                    <option>26 : HANEDAN</option>
-                </select>
-            </div>
-            <div class="field">
-                <label>Kullanıcı Adı</label>
-                <input id="txt-user" type="text" value="ihracat">
-            </div>
-            <div class="field">
-                <label>Parola</label>
-                <input id="txt-pass" type="password" value="1234">
-            </div>
-            <div class="field">
-                <label>Bilgisayar Kimliği (9 Hane)</label>
-                <input id="txt-target" class="target-id" type="text" placeholder="Örn: 467 250 760">
-            </div>
-            <button class="btn-connect" onclick="startConnection()">BİLGİSAYARA BAĞLAN</button>
-            <div id="status" class="status-text">Sunucuya bağlanıyor...</div>
+    <div id="login-view">
+        <!-- Arama Kartı -->
+        <div class="search-card">
+            <input id="txt-target" class="search-input" type="text" placeholder="Uzak Adresi Gir" autocomplete="off">
+            <button class="btn-go" onclick="startConnection()">
+                <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+        </div>
+
+        <!-- Sizin Adresiniz -->
+        <div class="my-address-box">
+            <div class="my-address-lbl">Sizin adresiniz</div>
+            <div id="lbl-my-id" class="my-address-num">1 771 570 443</div>
+            <div class="my-address-menu">⋮</div>
+        </div>
+
+        <!-- Sekmeler -->
+        <div class="tabs-pill">
+            <button class="tab-btn active">🕒</button>
+            <button class="tab-btn">⭐</button>
+            <button class="tab-btn">👓</button>
+        </div>
+
+        <!-- Kayıtlı / Son Bağlanılan Cihazlar -->
+        <div class="recent-list" id="recent-container">
+            <!-- Dinamik Kartlar Eklenecek -->
         </div>
     </div>
 
@@ -106,8 +147,16 @@ MOBILE_HTML = """<!DOCTYPE html>
         </div>
         <div id="screen-container">
             <img id="screen-img" alt="Canlı Ekran">
+            
+            <!-- Sanal Mouse İmleci (Ok) -->
+            <div id="virtual-cursor">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
+                    <path d="M5.5 2V18.5L9.5 14.5L13.5 22L16 20.5L12 13.5H18.5L5.5 2Z" fill="white" stroke="#18181b" stroke-width="1.6" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            <div id="click-ripple"></div>
         </div>
-        <div id="debug-pill">● Görüntü bekleniyor...</div>
+        <div id="debug-pill">● Canlı Yayın Hazır</div>
         <input type="text" id="hidden-input" autocomplete="off" autocapitalize="off">
     </div>
 
@@ -118,26 +167,65 @@ MOBILE_HTML = """<!DOCTYPE html>
         let myId = "MOB " + Math.floor(100 + Math.random() * 900) + " " + Math.floor(100 + Math.random() * 900);
         let targetId = null;
         let screenImg = document.getElementById("screen-img");
+        let vCursor = document.getElementById("virtual-cursor");
+        let ripple = document.getElementById("click-ripple");
         let debugPill = document.getElementById("debug-pill");
         let hiddenInput = document.getElementById("hidden-input");
         let frameCount = 0;
         let currentUrl = null;
+
+        // Geçmiş Cihazları Yükle
+        function loadRecent() {
+            let list = JSON.parse(localStorage.getItem("hanedan_mobile_recent") || "[]");
+            if (list.length === 0) {
+                list = ["467 250 760", "955 051 345"];
+            }
+            const container = document.getElementById("recent-container");
+            container.innerHTML = "";
+            list.forEach(id => {
+                const card = document.createElement("div");
+                card.className = "device-card";
+                card.onclick = () => {
+                    document.getElementById("txt-target").value = id;
+                    startConnection();
+                };
+                card.innerHTML = `
+                    <div class="device-thumb">
+                        <div class="badge-check">✓</div>
+                        <div class="badge-star">★</div>
+                    </div>
+                    <div class="device-info">
+                        <div class="device-id">${id}</div>
+                        <div class="device-sub">Son Bağlantı</div>
+                    </div>
+                    <div class="card-menu">⋮</div>
+                `;
+                container.appendChild(card);
+            });
+        }
+        loadRecent();
+
+        function saveRecent(id) {
+            let list = JSON.parse(localStorage.getItem("hanedan_mobile_recent") || "[]");
+            list = list.filter(x => x !== id);
+            list.unshift(id);
+            localStorage.setItem("hanedan_mobile_recent", JSON.stringify(list.slice(0, 5)));
+            loadRecent();
+        }
 
         function connectWs() {
             ws = new WebSocket(wsUrl);
             ws.binaryType = "arraybuffer";
 
             ws.onopen = () => {
-                document.getElementById("status").innerText = "● Buluta Hazır (Kimlik girip bağlanabilirsiniz)";
-                document.getElementById("status").style.color = "#22c55e";
+                document.getElementById("lbl-my-id").innerText = myId;
                 ws.send(JSON.stringify({ type: "register", client_id: myId }));
             };
 
             ws.onmessage = (e) => {
-                // 1. Canlı Görüntü Karesi (Binary ArrayBuffer)
+                // Canlı Ekran Karesi
                 if (e.data instanceof ArrayBuffer) {
                     const u8 = new Uint8Array(e.data);
-                    // "FRAME:" Kontrolü (ASCII 70, 82, 65, 77, 69, 58)
                     if (u8.length > 6 && u8[0] === 70 && u8[1] === 82 && u8[2] === 65 && u8[3] === 77 && u8[4] === 69 && u8[5] === 58) {
                         const jpegData = e.data.slice(6);
                         const blob = new Blob([jpegData], { type: "image/jpeg" });
@@ -147,9 +235,7 @@ MOBILE_HTML = """<!DOCTYPE html>
                         currentUrl = newUrl;
                         
                         screenImg.onload = () => {
-                            if (oldUrl) {
-                                URL.revokeObjectURL(oldUrl);
-                            }
+                            if (oldUrl) URL.revokeObjectURL(oldUrl);
                         };
                         screenImg.src = newUrl;
                         
@@ -159,121 +245,127 @@ MOBILE_HTML = """<!DOCTYPE html>
                     return;
                 }
 
-                // 2. JSON Sinyal Mesajları
                 const data = JSON.parse(e.data);
                 if (data.type === "connection_result") {
                     if (data.accepted) {
+                        saveRecent(targetId);
                         document.getElementById("login-view").style.display = "none";
+                        document.querySelector(".app-header").style.display = "none";
                         document.getElementById("viewer-view").style.display = "block";
-                        debugPill.innerText = "● Bağlantı kuruldu, ekran bekleniyor...";
+                        vCursor.style.display = "block";
                     } else {
-                        document.getElementById("status").innerText = "❌ Bilgisayar bağlantıyı reddetti.";
-                        document.getElementById("status").style.color = "#ef4444";
+                        alert("Bilgisayar bağlantıyı reddetti veya oturum kapalı!");
                     }
                 } else if (data.type === "session_closed") {
                     disconnect();
                     alert("Uzak bağlantı sonlandırıldı.");
                 } else if (data.type === "error") {
-                    document.getElementById("status").innerText = "Hata: " + data.message;
-                    document.getElementById("status").style.color = "#ef4444";
+                    alert(data.message);
                 }
             };
 
-            ws.onerror = () => {
-                document.getElementById("status").innerText = "Sunucu bağlantı hatası.";
-                document.getElementById("status").style.color = "#ef4444";
-            };
-
             ws.onclose = () => {
-                document.getElementById("status").innerText = "Bağlantı koptu, yeniden deneniyor...";
-                document.getElementById("status").style.color = "#ef4444";
                 setTimeout(connectWs, 3000);
             };
         }
-
         connectWs();
 
         function startConnection() {
-            const user = document.getElementById("txt-user").value.trim().toLowerCase();
-            const pass = document.getElementById("txt-pass").value.trim();
             targetId = document.getElementById("txt-target").value.trim();
-
-            if (user !== "ihracat" || pass !== "1234") {
-                alert("Hatalı Kullanıcı Adı veya Parola!");
-                return;
-            }
             if (!targetId) {
-                alert("Lütfen bağlanılacak 9 haneli kimliği giriniz!");
+                alert("Lütfen bağlanılacak adresi girin!");
                 return;
             }
-
-            document.getElementById("status").innerText = targetId + " cihazına bağlanılıyor...";
-            document.getElementById("status").style.color = "#f59e0b";
-
             ws.send(JSON.stringify({
                 type: "connect_request",
                 target_id: targetId
             }));
         }
 
-        /* Dokunmatik Kontroller (Touchpad) */
+        /* Dokunmatik Fare Kontrolleri ve İmleç Takibi */
+        function updateCursor(x, y) {
+            vCursor.style.left = x + "px";
+            vCursor.style.top = y + "px";
+        }
+
+        function playRipple(x, y) {
+            ripple.style.left = x + "px";
+            ripple.style.top = y + "px";
+            ripple.style.transition = "none";
+            ripple.style.transform = "translate(-50%, -50%) scale(0)";
+            ripple.style.opacity = "1";
+            setTimeout(() => {
+                ripple.style.transition = "transform 0.25s ease-out, opacity 0.25s ease-out";
+                ripple.style.transform = "translate(-50%, -50%) scale(1.6)";
+                ripple.style.opacity = "0";
+            }, 10);
+        }
+
         function getCoords(e) {
             const rect = screenImg.getBoundingClientRect();
             const touch = e.touches[0] || e.changedTouches[0];
+            updateCursor(touch.clientX, touch.clientY);
             const rx = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
             const ry = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
-            return { rx, ry };
+            return { rx, ry, clientX: touch.clientX, clientY: touch.clientY };
         }
 
-        screenImg.addEventListener("touchstart", (e) => {
-            const coords = getCoords(e);
+        document.getElementById("screen-container").addEventListener("touchstart", (e) => {
+            const c = getCoords(e);
+            vCursor.style.display = "block";
             ws.send(JSON.stringify({
                 type: "input_event",
                 target_id: targetId,
-                event: { kind: "mouse_move", rx: coords.rx, ry: coords.ry }
+                event: { kind: "mouse_move", rx: c.rx, ry: c.ry }
             }));
         });
 
-        screenImg.addEventListener("touchmove", (e) => {
+        document.getElementById("screen-container").addEventListener("touchmove", (e) => {
             e.preventDefault();
-            const coords = getCoords(e);
+            const c = getCoords(e);
             ws.send(JSON.stringify({
                 type: "input_event",
                 target_id: targetId,
-                event: { kind: "mouse_move", rx: coords.rx, ry: coords.ry }
+                event: { kind: "mouse_move", rx: c.rx, ry: c.ry }
             }));
         }, { passive: false });
 
-        screenImg.addEventListener("touchend", (e) => {
-            const coords = getCoords(e);
+        document.getElementById("screen-container").addEventListener("touchend", (e) => {
+            const c = getCoords(e);
+            playRipple(c.clientX, c.clientY);
             // Sol Tıklama Gönder
             ws.send(JSON.stringify({
                 type: "input_event",
                 target_id: targetId,
-                event: { kind: "mouse_down", button: "left", rx: coords.rx, ry: coords.ry }
+                event: { kind: "mouse_down", button: "left", rx: c.rx, ry: c.ry }
             }));
             setTimeout(() => {
                 ws.send(JSON.stringify({
                     type: "input_event",
                     target_id: targetId,
-                    event: { kind: "mouse_up", button: "left", rx: coords.rx, ry: coords.ry }
+                    event: { kind: "mouse_up", button: "left", rx: c.rx, ry: c.ry }
                 }));
-            }, 40);
+            }, 35);
         });
 
         function sendRightClick() {
+            const rect = vCursor.getBoundingClientRect();
+            const sRect = screenImg.getBoundingClientRect();
+            const rx = Math.max(0, Math.min(1, (rect.left - sRect.left) / sRect.width));
+            const ry = Math.max(0, Math.min(1, (rect.top - sRect.top) / sRect.height));
+            playRipple(rect.left, rect.top);
             ws.send(JSON.stringify({
                 type: "input_event",
                 target_id: targetId,
-                event: { kind: "mouse_down", button: "right", rx: 0.5, ry: 0.5 }
+                event: { kind: "mouse_down", button: "right", rx: rx, ry: ry }
             }));
             setTimeout(() => {
                 ws.send(JSON.stringify({
                     type: "input_event",
                     target_id: targetId,
-                    event: { kind: "mouse_up", button: "right", rx: 0.5, ry: 0.5 }
+                    event: { kind: "mouse_up", button: "right", rx: rx, ry: ry }
                 }));
-            }, 40);
+            }, 35);
         }
 
         function toggleKeyboard() {
@@ -309,8 +401,9 @@ MOBILE_HTML = """<!DOCTYPE html>
                 ws.send(JSON.stringify({ type: "session_close", target_id: targetId }));
             }
             document.getElementById("viewer-view").style.display = "none";
+            document.querySelector(".app-header").style.display = "flex";
             document.getElementById("login-view").style.display = "flex";
-            document.getElementById("status").innerText = "Bağlantı kapatıldı.";
+            vCursor.style.display = "none";
         }
     </script>
 </body>
@@ -451,13 +544,12 @@ async def handle_client(websocket):
 
 async def process_http_request(connection, request):
     """Tarayıcılardan ve mobil telefonlardan gelen HTTP isteklerini karşılar"""
-    # EĞER WEBSOCKET İSTEĞİYSE ASLA ENGELLEME, DOĞRUDAN WEBSOCKET OLARAK BAĞLANMASINA İZİN VER!
     if request.headers.get("Upgrade", "").lower() == "websocket":
         return None
 
     path = request.path.split("?")[0]
     
-    # 1. Mobil Web Sayfası
+    # 1. AnyDesk Tarzı Mobil Web Sayfası
     if path == "/" or path == "/index.html" or path == "/mobile":
         return Response(
             200, 
@@ -474,7 +566,7 @@ async def process_http_request(connection, request):
         v_data = json.dumps({
             "version": "1.3",
             "download_url": "https://raw.githubusercontent.com/finan2243/anyconnect-server/main/AnyConnect.exe",
-            "notes": "Mobil erisim ve yuksek hiz optimizasyonu"
+            "notes": "AnyDesk mobil temasi ve fare imleci desteği"
         })
         return Response(
             200,
@@ -491,7 +583,7 @@ async def process_http_request(connection, request):
 async def main():
     host = "0.0.0.0"
     port = int(os.environ.get("PORT", 8765))
-    logger.info(f"=== HANEDAN RELAY & MOBİL WEB SUNUCUSU BAŞLATILIYOR ({host}:{port}) ===")
+    logger.info(f"=== HANEDAN ANYDESK RELAY & MOBİL WEB SUNUCUSU ({host}:{port}) ===")
     
     async with websockets.serve(
         handle_client, 
