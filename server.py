@@ -1,6 +1,6 @@
 """
 AnyDesk Klonu - Merkezi Eşleştirme, Aktarma ve Mobil Web Sunucusu (Signaling, Relay & Mobile Web)
-AnyDesk Mobil Teması & Donanımsal İmleç Desteği
+AnyDesk Mobil Teması (Birebir iOS/Android AnyDesk UI) + Akıcı Trackpad & Donma Önleyici Motor
 """
 
 import asyncio
@@ -25,73 +25,76 @@ MOBILE_HTML = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Hanedan AnyDesk</title>
+    <title>AnyDesk</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Hanedan">
+    <meta name="apple-mobile-web-app-title" content="AnyDesk">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ef4444'/><path d='M35 50 L50 35 L65 50 L50 65 Z' fill='white'/></svg>">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
         body { background-color: #f7f8fa; color: #18181b; height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
 
-        /* Üst Header */
-        .app-header { display: flex; align-items: center; justify-content: space-between; padding: 14px 20px; background: #ffffff; border-bottom: 1px solid #f0f1f3; }
-        .header-left { width: 32px; height: 32px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; }
-        .header-left svg { width: 18px; height: 18px; fill: #ffffff; }
-        .header-title { display: flex; align-items: center; gap: 6px; font-size: 20px; font-weight: 700; color: #18181b; }
-        .header-title .diamond { color: #ef4444; font-size: 22px; }
-        .header-menu { background: none; border: none; font-size: 22px; color: #3f3f46; cursor: pointer; }
+        /* Üst Header (Birebir AnyDesk) */
+        .app-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 18px; background: #ffffff; border-bottom: 1px solid #f0f1f3; }
+        .header-left { width: 34px; height: 34px; border-radius: 50%; background: #ef4444; display: flex; align-items: center; justify-content: center; }
+        .header-left svg { width: 20px; height: 20px; fill: #ffffff; }
+        .header-title { display: flex; align-items: center; gap: 6px; font-size: 21px; font-weight: 700; color: #18181b; letter-spacing: -0.3px; }
+        .header-title .diamonds { display: inline-flex; align-items: center; margin-right: 2px; }
+        .header-title .diamond-red { color: #ef4444; font-size: 22px; line-height: 1; }
+        .header-title .diamond-inner { color: #ef4444; font-size: 16px; margin-left: -6px; line-height: 1; }
+        .header-menu { background: none; border: none; font-size: 24px; color: #18181b; cursor: pointer; padding: 4px; line-height: 1; }
 
         /* Ana Sayfa Gövdesi */
-        #login-view { flex: 1; overflow-y: auto; padding: 20px 16px; display: flex; flex-direction: column; }
+        #login-view { flex: 1; overflow-y: auto; padding: 18px 16px; display: flex; flex-direction: column; }
         
-        /* Uzak Adresi Gir Arama Kartı */
-        .search-card { background: #ffffff; border: 1.5px solid #e4e4e7; border-radius: 14px; padding: 6px 14px; display: flex; align-items: center; box-shadow: 0 2px 10px rgba(0,0,0,0.04); margin-bottom: 22px; }
-        .search-input { flex: 1; height: 46px; border: none; outline: none; font-size: 18px; color: #18181b; background: transparent; }
-        .search-input::placeholder { color: #a1a1aa; font-weight: 400; }
+        /* Uzak Adresi Gir Arama Kartı (Birebir AnyDesk) */
+        .search-card { background: #ffffff; border: 1.5px solid #e4e4e7; border-radius: 12px; padding: 4px 12px 4px 16px; display: flex; align-items: center; box-shadow: 0 1px 4px rgba(0,0,0,0.03); margin-bottom: 22px; }
+        .search-input { flex: 1; height: 48px; border: none; outline: none; font-size: 19px; color: #18181b; background: transparent; font-weight: 400; }
+        .search-input::placeholder { color: #9ca3af; font-weight: 400; }
         .btn-go { width: 38px; height: 38px; border-radius: 50%; background: #ef4444; border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; }
         .btn-go svg { width: 18px; height: 18px; fill: #ffffff; }
         .btn-go:active { transform: scale(0.92); }
 
         /* Sizin Adresiniz Alanı */
         .my-address-box { text-align: center; margin-bottom: 22px; position: relative; }
-        .my-address-lbl { font-size: 13px; color: #71717a; margin-bottom: 4px; }
-        .my-address-num { font-size: 28px; font-weight: 800; color: #ef4444; letter-spacing: 1px; }
-        .my-address-menu { position: absolute; right: 8px; top: 12px; font-size: 20px; color: #71717a; }
+        .my-address-lbl { font-size: 13.5px; color: #4b5563; margin-bottom: 4px; font-weight: 400; }
+        .my-address-num { font-size: 30px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px; }
+        .my-address-menu { position: absolute; right: 10px; top: 12px; font-size: 20px; color: #6b7280; cursor: pointer; }
 
-        /* Sekmeler (Tabs) */
-        .tabs-pill { display: flex; background: #ebecee; border-radius: 12px; padding: 3px; margin-bottom: 18px; }
-        .tab-btn { flex: 1; height: 34px; background: transparent; border: none; border-radius: 10px; font-size: 15px; color: #71717a; display: flex; align-items: center; justify-content: center; cursor: pointer; }
-        .tab-btn.active { background: #ffffff; color: #18181b; font-weight: 600; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
+        /* Sekmeler (Birebir AnyDesk: Geçmiş / Yıldız / Keşif) */
+        .tabs-pill { display: flex; background: #f3f4f6; border-radius: 10px; padding: 3px; margin-bottom: 18px; }
+        .tab-btn { flex: 1; height: 36px; background: transparent; border: none; border-radius: 8px; font-size: 18px; color: #6b7280; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .tab-btn.active { background: #ffffff; color: #18181b; box-shadow: 0 2px 6px rgba(0,0,0,0.08); }
 
         /* Cihaz Geçmişi Listesi */
         .recent-list { display: flex; flex-direction: column; gap: 12px; flex: 1; }
-        .device-card { background: #ffffff; border: 1px solid #f0f1f3; border-radius: 14px; padding: 10px; display: flex; align-items: center; gap: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.03); cursor: pointer; position: relative; }
-        .device-card:active { background: #f4f4f5; }
-        .device-thumb { width: 110px; height: 68px; border-radius: 8px; background: #18181b; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+        .device-card { background: #ffffff; border: 1px solid #f0f1f3; border-radius: 12px; padding: 8px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.03); cursor: pointer; position: relative; }
+        .device-card:active { background: #f9fafb; }
+        .device-thumb { width: 106px; height: 64px; border-radius: 6px; background: #000000; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .device-thumb img { width: 100%; height: 100%; object-fit: cover; }
-        .badge-check { position: absolute; top: 6px; left: 6px; width: 18px; height: 18px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold; }
-        .badge-star { position: absolute; top: 6px; right: 6px; color: #eab308; font-size: 14px; }
+        .badge-check { position: absolute; top: 5px; left: 5px; width: 18px; height: 18px; border-radius: 50%; background: #22c55e; display: flex; align-items: center; justify-content: center; font-size: 11px; color: white; font-weight: bold; }
+        .badge-star { position: absolute; top: 5px; right: 6px; color: #facc15; font-size: 14px; }
         .device-info { flex: 1; }
-        .device-id { font-size: 17px; font-weight: 700; color: #18181b; letter-spacing: 0.5px; }
-        .device-sub { font-size: 12px; color: #71717a; margin-top: 2px; }
-        .card-menu { padding: 8px; font-size: 18px; color: #a1a1aa; }
+        .device-id { font-size: 18px; font-weight: 700; color: #18181b; letter-spacing: 0.2px; }
+        .device-sub { font-size: 12px; color: #6b7280; margin-top: 2px; }
+        .card-menu { padding: 8px; font-size: 20px; color: #9ca3af; }
 
         /* CANLI EKRAN (Viewer) */
         #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; z-index: 1000; }
-        #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
-        #screen-img { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; }
+        #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; }
+        #screen-img { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 
-        /* Sanal Fare İmleci (Ekranda Parmakla Dolaşan Ok) */
-        #virtual-cursor { position: absolute; top: 0; left: 0; width: 26px; height: 26px; pointer-events: none; z-index: 9999; transform: translate(-2px, -2px); display: none; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5)); transition: transform 0.04s ease-out; }
-        #click-ripple { position: absolute; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #f59e0b; pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; }
+        /* Sanal Fare İmleci (AnyDesk Tarzı Beyaz Ok Pointer) */
+        #virtual-cursor { position: absolute; top: 0; left: 0; width: 32px; height: 32px; pointer-events: none; z-index: 9999; display: none; transform: translate(0px, 0px); filter: drop-shadow(0 2px 5px rgba(0,0,0,0.7)); will-change: transform; }
+        #click-ripple { position: absolute; width: 40px; height: 40px; border-radius: 50%; border: 3px solid #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; will-change: transform, opacity; }
 
-        /* Canlı Oturum Araç Çubuğu */
-        .toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.9); border: 1px solid #3f3f46; border-radius: 30px; padding: 6px 16px; display: flex; gap: 14px; align-items: center; z-index: 10001; backdrop-filter: blur(10px); }
-        .tool-btn { background: transparent; border: none; color: #ffffff; font-size: 20px; padding: 4px; border-radius: 8px; cursor: pointer; }
-        .tool-btn:active { color: #f59e0b; }
+        /* Canlı Oturum Araç Çubuğu (Toolbar) */
+        .toolbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.92); border: 1px solid rgba(255,255,255,0.15); border-radius: 35px; padding: 6px 18px; display: flex; gap: 16px; align-items: center; z-index: 10001; backdrop-filter: blur(12px); box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+        .tool-btn { background: transparent; border: none; color: #ffffff; font-size: 21px; padding: 6px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .tool-btn:active { transform: scale(0.9); }
+        .tool-btn.mode-active { color: #f59e0b; }
         .tool-btn.disconnect { color: #ef4444; font-size: 22px; font-weight: bold; }
-        #debug-pill { position: absolute; bottom: 12px; left: 12px; background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 20px; pointer-events: none; z-index: 10001; }
+        #status-pill { position: absolute; top: 14px; left: 14px; background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; pointer-events: none; z-index: 10001; }
         #hidden-input { position: absolute; top: -100px; left: -100px; opacity: 0; }
     </style>
 </head>
@@ -103,15 +106,19 @@ MOBILE_HTML = """<!DOCTYPE html>
             <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14h2v2h-2v-2zm0-10h2v8h-2V6z"/></svg>
         </div>
         <div class="header-title">
-            <span class="diamond">◆</span> Hanedan
+            <span class="diamonds">
+                <span class="diamond-red">◆</span>
+                <span class="diamond-inner">◆</span>
+            </span>
+            AnyDesk
         </div>
         <button class="header-menu">≡</button>
     </div>
 
     <div id="login-view">
-        <!-- Arama Kartı -->
+        <!-- Arama Kartı (Uzak Adresi Gir) -->
         <div class="search-card">
-            <input id="txt-target" class="search-input" type="text" placeholder="Uzak Adresi Gir" autocomplete="off">
+            <input id="txt-target" class="search-input" type="text" placeholder="Uzak Adresi Gir" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
             <button class="btn-go" onclick="startConnection()">
                 <svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </button>
@@ -124,7 +131,7 @@ MOBILE_HTML = """<!DOCTYPE html>
             <div class="my-address-menu">⋮</div>
         </div>
 
-        <!-- Sekmeler -->
+        <!-- Sekmeler (Geçmiş / Favori / Keşif) -->
         <div class="tabs-pill">
             <button class="tab-btn active">🕒</button>
             <button class="tab-btn">⭐</button>
@@ -137,26 +144,35 @@ MOBILE_HTML = """<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- CANLI EKRAN İZLEME VE KONTROL -->
+    <!-- CANLI EKRAN İZLEME VE KONTROL (Viewer) -->
     <div id="viewer-view">
+        <!-- Üst Bilgi Rozeti -->
+        <div id="status-pill">● Canlı Yayın Hazır</div>
+
+        <!-- Ekran Alanı -->
+        <div id="screen-container">
+            <img id="screen-img" alt="Canlı Ekran">
+            
+            <!-- AnyDesk Sanal Fare İmleci -->
+            <div id="virtual-cursor">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <path d="M4 3L11.5 24L15.5 16.5L24 16.5L4 3Z" fill="#ffffff" stroke="#000000" stroke-width="1.8" stroke-linejoin="round"/>
+                </svg>
+            </div>
+            
+            <!-- Tıklama Halkası (Ripple) -->
+            <div id="click-ripple"></div>
+        </div>
+
+        <!-- Alt Yüzen Araç Çubuğu -->
         <div class="toolbar">
+            <button class="tool-btn" id="btn-mode" onclick="toggleInputMode()" title="Girdi Modu">💻</button>
             <button class="tool-btn" onclick="toggleKeyboard()" title="Klavye">⌨️</button>
             <button class="tool-btn" onclick="sendRightClick()" title="Sağ Tık">🖱️</button>
             <button class="tool-btn" onclick="toggleFullscreen()" title="Tam Ekran">⛶</button>
             <button class="tool-btn disconnect" onclick="disconnect()" title="Bağlantıyı Kes">✕</button>
         </div>
-        <div id="screen-container">
-            <img id="screen-img" alt="Canlı Ekran">
-            
-            <!-- Sanal Mouse İmleci (Ok) -->
-            <div id="virtual-cursor">
-                <svg width="26" height="26" viewBox="0 0 24 24" fill="none">
-                    <path d="M5.5 2V18.5L9.5 14.5L13.5 22L16 20.5L12 13.5H18.5L5.5 2Z" fill="white" stroke="#18181b" stroke-width="1.6" stroke-linejoin="round"/>
-                </svg>
-            </div>
-            <div id="click-ripple"></div>
-        </div>
-        <div id="debug-pill">● Canlı Yayın Hazır</div>
+
         <input type="text" id="hidden-input" autocomplete="off" autocapitalize="off">
     </div>
 
@@ -166,15 +182,29 @@ MOBILE_HTML = """<!DOCTYPE html>
         let ws = null;
         let myId = "MOB " + Math.floor(100 + Math.random() * 900) + " " + Math.floor(100 + Math.random() * 900);
         let targetId = null;
-        let screenImg = document.getElementById("screen-img");
-        let vCursor = document.getElementById("virtual-cursor");
-        let ripple = document.getElementById("click-ripple");
-        let debugPill = document.getElementById("debug-pill");
-        let hiddenInput = document.getElementById("hidden-input");
+        
+        const screenImg = document.getElementById("screen-img");
+        const screenCont = document.getElementById("screen-container");
+        const vCursor = document.getElementById("virtual-cursor");
+        const ripple = document.getElementById("click-ripple");
+        const statusPill = document.getElementById("status-pill");
+        const hiddenInput = document.getElementById("hidden-input");
+        const btnMode = document.getElementById("btn-mode");
+        
         let frameCount = 0;
         let currentUrl = null;
+        let isRendering = false;
+        let pendingFrameBuffer = null;
 
-        // Geçmiş Cihazları Yükle
+        // Girdi Modu: 'trackpad' (Laptop Dokunmatik Yüzey - İmleç Kaldığı Yerden Devam Eder) veya 'direct' (Dokunulan Yere Tıkla)
+        let inputMode = "trackpad"; 
+
+        // Klavyeden Enter'a basınca bağlan
+        document.getElementById("txt-target").addEventListener("keypress", (e) => {
+            if (e.key === "Enter") startConnection();
+        });
+
+        // Geçmiş Cihazları Yükle (Birebir AnyDesk Tasarımı)
         function loadRecent() {
             let list = JSON.parse(localStorage.getItem("hanedan_mobile_recent") || "[]");
             if (list.length === 0) {
@@ -182,7 +212,7 @@ MOBILE_HTML = """<!DOCTYPE html>
             }
             const container = document.getElementById("recent-container");
             container.innerHTML = "";
-            list.forEach(id => {
+            list.forEach((id, index) => {
                 const card = document.createElement("div");
                 card.className = "device-card";
                 card.onclick = () => {
@@ -209,8 +239,42 @@ MOBILE_HTML = """<!DOCTYPE html>
             let list = JSON.parse(localStorage.getItem("hanedan_mobile_recent") || "[]");
             list = list.filter(x => x !== id);
             list.unshift(id);
-            localStorage.setItem("hanedan_mobile_recent", JSON.stringify(list.slice(0, 5)));
+            localStorage.setItem("hanedan_mobile_recent", JSON.stringify(list.slice(0, 6)));
             loadRecent();
+        }
+
+        // ==========================================
+        // YÜKSEK HIZLI VE DONMASIZ GÖRÜNTÜ OYNATICI
+        // ==========================================
+        function processNextFrame() {
+            if (!pendingFrameBuffer || isRendering) return;
+            isRendering = true;
+            const buffer = pendingFrameBuffer;
+            pendingFrameBuffer = null;
+
+            const blob = new Blob([buffer], { type: "image/jpeg" });
+            const newUrl = URL.createObjectURL(blob);
+            const oldUrl = currentUrl;
+            currentUrl = newUrl;
+
+            screenImg.onload = () => {
+                if (oldUrl) URL.revokeObjectURL(oldUrl);
+                isRendering = false;
+                frameCount++;
+                if (frameCount % 30 === 0) {
+                    statusPill.innerText = `● Canlı (${frameCount} fps-akıcı)`;
+                }
+                updateCursorPosition();
+                // Eğer sırada bekleyen daha yeni bir kare varsa hemen çiz
+                if (pendingFrameBuffer) {
+                    requestAnimationFrame(processNextFrame);
+                }
+            };
+            screenImg.onerror = () => {
+                if (oldUrl) URL.revokeObjectURL(oldUrl);
+                isRendering = false;
+            };
+            screenImg.src = newUrl;
         }
 
         function connectWs() {
@@ -223,28 +287,20 @@ MOBILE_HTML = """<!DOCTYPE html>
             };
 
             ws.onmessage = (e) => {
-                // Canlı Ekran Karesi
+                // 1. Canlı Ekran Karesi (Binary)
                 if (e.data instanceof ArrayBuffer) {
                     const u8 = new Uint8Array(e.data);
                     if (u8.length > 6 && u8[0] === 70 && u8[1] === 82 && u8[2] === 65 && u8[3] === 77 && u8[4] === 69 && u8[5] === 58) {
-                        const jpegData = e.data.slice(6);
-                        const blob = new Blob([jpegData], { type: "image/jpeg" });
-                        const newUrl = URL.createObjectURL(blob);
-                        
-                        const oldUrl = currentUrl;
-                        currentUrl = newUrl;
-                        
-                        screenImg.onload = () => {
-                            if (oldUrl) URL.revokeObjectURL(oldUrl);
-                        };
-                        screenImg.src = newUrl;
-                        
-                        frameCount++;
-                        debugPill.innerText = `● Canlı (${frameCount} kare)`;
+                        // Yeni gelen kareyi sıraya al (Eskisi henüz çiziliyorsa otomatik atlanır, asla donma/birikme yapmaz)
+                        pendingFrameBuffer = e.data.slice(6);
+                        if (!isRendering) {
+                            processNextFrame();
+                        }
                     }
                     return;
                 }
 
+                // 2. JSON Sinyal Mesajları
                 const data = JSON.parse(e.data);
                 if (data.type === "connection_result") {
                     if (data.accepted) {
@@ -253,6 +309,8 @@ MOBILE_HTML = """<!DOCTYPE html>
                         document.querySelector(".app-header").style.display = "none";
                         document.getElementById("viewer-view").style.display = "block";
                         vCursor.style.display = "block";
+                        statusPill.innerText = `● ${targetId} Bağlandı`;
+                        setTimeout(updateCursorPosition, 100);
                     } else {
                         alert("Bilgisayar bağlantıyı reddetti veya oturum kapalı!");
                     }
@@ -276,94 +334,198 @@ MOBILE_HTML = """<!DOCTYPE html>
                 alert("Lütfen bağlanılacak adresi girin!");
                 return;
             }
+            statusPill.innerText = `● ${targetId} Aranıyor...`;
             ws.send(JSON.stringify({
                 type: "connect_request",
                 target_id: targetId
             }));
         }
 
-        /* Dokunmatik Fare Kontrolleri ve İmleç Takibi */
-        function updateCursor(x, y) {
-            vCursor.style.left = x + "px";
-            vCursor.style.top = y + "px";
-        }
+        // ========================================================
+        // LAPTOP TRACKPAD / TOUCHPAD MOTORU (İmleç Kaldığı Yerden Devam Eder)
+        // ========================================================
+        let curRx = 0.5; // İmlecin normalleştirilmiş X konumu (0.0 - 1.0)
+        let curRy = 0.5; // İmlecin normalleştirilmiş Y konumu (0.0 - 1.0)
+        
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let lastTouchX = 0;
+        let lastTouchY = 0;
+        let isTouchMoving = false;
+        let touchStartTime = 0;
+        let longPressTimer = null;
+        let lastScrollY = 0;
+        let lastMoveSentTime = 0;
 
-        function playRipple(x, y) {
-            ripple.style.left = x + "px";
-            ripple.style.top = y + "px";
+        function updateCursorPosition() {
+            const rect = screenImg.getBoundingClientRect();
+            if (rect.width > 0 && rect.height > 0) {
+                const px = rect.left + (curRx * rect.width);
+                const py = rect.top + (curRy * rect.height);
+                vCursor.style.transform = `translate(${px}px, ${py}px)`;
+            }
+        }
+        window.addEventListener("resize", updateCursorPosition);
+
+        function playRippleAtCursor() {
+            const rect = screenImg.getBoundingClientRect();
+            const px = rect.left + (curRx * rect.width);
+            const py = rect.top + (curRy * rect.height);
+            
+            ripple.style.left = px + "px";
+            ripple.style.top = py + "px";
             ripple.style.transition = "none";
             ripple.style.transform = "translate(-50%, -50%) scale(0)";
             ripple.style.opacity = "1";
+            
             setTimeout(() => {
-                ripple.style.transition = "transform 0.25s ease-out, opacity 0.25s ease-out";
-                ripple.style.transform = "translate(-50%, -50%) scale(1.6)";
+                ripple.style.transition = "transform 0.22s ease-out, opacity 0.22s ease-out";
+                ripple.style.transform = "translate(-50%, -50%) scale(1.5)";
                 ripple.style.opacity = "0";
             }, 10);
         }
 
-        function getCoords(e) {
-            const rect = screenImg.getBoundingClientRect();
-            const touch = e.touches[0] || e.changedTouches[0];
-            updateCursor(touch.clientX, touch.clientY);
-            const rx = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
-            const ry = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
-            return { rx, ry, clientX: touch.clientX, clientY: touch.clientY };
+        function toggleInputMode() {
+            if (inputMode === "trackpad") {
+                inputMode = "direct";
+                btnMode.innerText = "👆";
+                statusPill.innerText = "● Mod: Doğrudan Dokunma";
+            } else {
+                inputMode = "trackpad";
+                btnMode.innerText = "💻";
+                statusPill.innerText = "● Mod: Laptop Touchpad";
+            }
         }
 
-        document.getElementById("screen-container").addEventListener("touchstart", (e) => {
-            const c = getCoords(e);
-            vCursor.style.display = "block";
-            ws.send(JSON.stringify({
-                type: "input_event",
-                target_id: targetId,
-                event: { kind: "mouse_move", rx: c.rx, ry: c.ry }
-            }));
-        });
+        screenCont.addEventListener("touchstart", (e) => {
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+                isTouchMoving = false;
+                touchStartTime = Date.now();
+                vCursor.style.display = "block";
 
-        document.getElementById("screen-container").addEventListener("touchmove", (e) => {
-            e.preventDefault();
-            const c = getCoords(e);
-            ws.send(JSON.stringify({
-                type: "input_event",
-                target_id: targetId,
-                event: { kind: "mouse_move", rx: c.rx, ry: c.ry }
-            }));
+                // Doğrudan Dokunma Modu ise parmağın bastığı yere imleci ışınla
+                if (inputMode === "direct") {
+                    const rect = screenImg.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        curRx = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                        curRy = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+                        updateCursorPosition();
+                    }
+                }
+
+                // Uzun basma = Sağ Tık (520ms)
+                longPressTimer = setTimeout(() => {
+                    if (!isTouchMoving) {
+                        sendRightClick();
+                        isTouchMoving = true;
+                    }
+                }, 520);
+
+            } else if (e.touches.length === 2) {
+                clearTimeout(longPressTimer);
+                lastScrollY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+            }
         }, { passive: false });
 
-        document.getElementById("screen-container").addEventListener("touchend", (e) => {
-            const c = getCoords(e);
-            playRipple(c.clientX, c.clientY);
-            // Sol Tıklama Gönder
-            ws.send(JSON.stringify({
-                type: "input_event",
-                target_id: targetId,
-                event: { kind: "mouse_down", button: "left", rx: c.rx, ry: c.ry }
-            }));
-            setTimeout(() => {
-                ws.send(JSON.stringify({
-                    type: "input_event",
-                    target_id: targetId,
-                    event: { kind: "mouse_up", button: "left", rx: c.rx, ry: c.ry }
-                }));
-            }, 35);
+        screenCont.addEventListener("touchmove", (e) => {
+            e.preventDefault();
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                const dx = touch.clientX - lastTouchX;
+                const dy = touch.clientY - lastTouchY;
+                lastTouchX = touch.clientX;
+                lastTouchY = touch.clientY;
+
+                if (Math.abs(touch.clientX - touchStartX) > 4 || Math.abs(touch.clientY - touchStartY) > 4) {
+                    isTouchMoving = true;
+                    clearTimeout(longPressTimer);
+                }
+
+                const rect = screenImg.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    if (inputMode === "trackpad") {
+                        // TRACKPAD MODU: Parmak nerede kayarsa kaysın, İMLEÇ KALDIĞI YERDEN devam eder!
+                        const sensitivity = 1.15;
+                        curRx = Math.max(0, Math.min(1, curRx + (dx * sensitivity / rect.width)));
+                        curRy = Math.max(0, Math.min(1, curRy + (dy * sensitivity / rect.height)));
+                    } else {
+                        // Doğrudan Mod
+                        curRx = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+                        curRy = Math.max(0, Math.min(1, (touch.clientY - rect.top) / rect.height));
+                    }
+                    updateCursorPosition();
+
+                    // Aşırı mesaj yığılmasını önle (25ms throttle)
+                    const now = performance.now();
+                    if (now - lastMoveSentTime > 25) {
+                        lastMoveSentTime = now;
+                        ws.send(JSON.stringify({
+                            type: "input_event",
+                            target_id: targetId,
+                            event: { kind: "mouse_move", rx: curRx, ry: curRy }
+                        }));
+                    }
+                }
+            } else if (e.touches.length === 2) {
+                // İki parmakla yukarı-aşağı kaydırma = Fare Tekerleği (Scroll)
+                clearTimeout(longPressTimer);
+                const currentY = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+                const dy = currentY - lastScrollY;
+                if (Math.abs(dy) > 10) {
+                    const scrollDir = dy > 0 ? 1 : -1;
+                    ws.send(JSON.stringify({
+                        type: "input_event",
+                        target_id: targetId,
+                        event: { kind: "mouse_scroll", dy: scrollDir }
+                    }));
+                    lastScrollY = currentY;
+                }
+            }
+        }, { passive: false });
+
+        screenCont.addEventListener("touchend", (e) => {
+            clearTimeout(longPressTimer);
+            if (e.touches.length === 0) {
+                const duration = Date.now() - touchStartTime;
+                
+                // Kısa dokunma (Tap): İMLECİN KALDIĞI YERDE TIKLA!
+                if (!isTouchMoving && duration < 350) {
+                    playRippleAtCursor();
+
+                    // Windows tarafına sol tık bas ve bırak gönder
+                    ws.send(JSON.stringify({
+                        type: "input_event",
+                        target_id: targetId,
+                        event: { kind: "mouse_down", button: "left", rx: curRx, ry: curRy }
+                    }));
+                    setTimeout(() => {
+                        ws.send(JSON.stringify({
+                            type: "input_event",
+                            target_id: targetId,
+                            event: { kind: "mouse_up", button: "left", rx: curRx, ry: curRy }
+                        }));
+                    }, 35);
+                }
+            }
         });
 
         function sendRightClick() {
-            const rect = vCursor.getBoundingClientRect();
-            const sRect = screenImg.getBoundingClientRect();
-            const rx = Math.max(0, Math.min(1, (rect.left - sRect.left) / sRect.width));
-            const ry = Math.max(0, Math.min(1, (rect.top - sRect.top) / sRect.height));
-            playRipple(rect.left, rect.top);
+            playRippleAtCursor();
             ws.send(JSON.stringify({
                 type: "input_event",
                 target_id: targetId,
-                event: { kind: "mouse_down", button: "right", rx: rx, ry: ry }
+                event: { kind: "mouse_down", button: "right", rx: curRx, ry: curRy }
             }));
             setTimeout(() => {
                 ws.send(JSON.stringify({
                     type: "input_event",
                     target_id: targetId,
-                    event: { kind: "mouse_up", button: "right", rx: rx, ry: ry }
+                    event: { kind: "mouse_up", button: "right", rx: curRx, ry: curRy }
                 }));
             }, 35);
         }
@@ -390,9 +552,9 @@ MOBILE_HTML = """<!DOCTYPE html>
 
         function toggleFullscreen() {
             if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen();
+                document.documentElement.requestFullscreen().catch(() => {});
             } else {
-                document.exitFullscreen();
+                document.exitFullscreen().catch(() => {});
             }
         }
 
@@ -564,17 +726,17 @@ async def process_http_request(connection, request):
     # 2. Otomatik Güncelleme Sürüm Kontrolü
     if path == "/version.json":
         v_data = json.dumps({
-            "version": "1.3",
+            "version": "1.4",
             "download_url": "https://raw.githubusercontent.com/finan2243/anyconnect-server/main/AnyConnect.exe",
-            "notes": "AnyDesk mobil temasi ve fare imleci desteği"
+            "notes": "AnyDesk mobil temasi, sifir donma ve akici laptop trackpad modu destegi."
         })
         return Response(
-            200,
-            "OK",
+            200, 
+            "OK", 
             Headers([
                 ("Content-Type", "application/json"),
                 ("Access-Control-Allow-Origin", "*")
-            ]),
+            ]), 
             v_data.encode("utf-8")
         )
 
