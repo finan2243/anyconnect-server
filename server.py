@@ -435,6 +435,10 @@ async def handle_client(websocket):
 
 async def process_http_request(connection, request):
     """Tarayıcılardan ve mobil telefonlardan gelen HTTP isteklerini karşılar"""
+    # EĞER WEBSOCKET İSTEĞİYSE ASLA ENGELLEME, DOĞRUDAN WEBSOCKET OLARAK BAĞLANMASINA İZİN VER!
+    if request.headers.get("Upgrade", "").lower() == "websocket":
+        return None
+
     path = request.path.split("?")[0]
     
     # 1. Mobil Web Sayfası
