@@ -23,7 +23,7 @@ MOBILE_HTML = """<!DOCTYPE html>
 <html lang="tr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Hanedan Uzaktan Masaüstü</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -31,7 +31,7 @@ MOBILE_HTML = """<!DOCTYPE html>
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%2318181b'/><text x='50' y='70' font-size='60' font-weight='bold' fill='%23f59e0b' text-anchor='middle'>H</text></svg>">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-tap-highlight-color: transparent; }
-        body { background-color: #121214; color: #f4f4f5; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
+        body { background-color: #121214; color: #f4f4f5; height: 100vh; width: 100vw; overflow: hidden; display: flex; flex-direction: column; }
         
         /* Giriş ve Bağlantı Paneli */
         #login-view { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; padding: 20px; }
@@ -49,13 +49,13 @@ MOBILE_HTML = """<!DOCTYPE html>
         .status-text { font-size: 12px; color: #e4e4e7; text-align: center; margin-top: 14px; min-height: 18px; }
 
         /* Canlı Ekran Görünümü */
-        #viewer-view { display: none; width: 100vw; height: 100vh; position: relative; background: #000000; touch-action: none; }
-        #canvas { width: 100%; height: 100%; object-fit: contain; }
+        #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; }
+        #canvas { display: block; width: 100vw; height: 100vh; object-fit: contain; }
         
         /* Floating Araç Çubuğu */
-        .toolbar { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.9); border: 1px solid #3f3f46; border-radius: 30px; padding: 6px 14px; display: flex; gap: 12px; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
+        .toolbar { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.9); border: 1px solid #3f3f46; border-radius: 30px; padding: 6px 14px; display: flex; gap: 12px; align-items: center; z-index: 100; backdrop-filter: blur(8px); }
         .tool-btn { background: transparent; border: none; color: #ffffff; font-size: 18px; padding: 6px; border-radius: 8px; cursor: pointer; }
-        .tool-btn.active { color: #f59e0b; }
+        .tool-btn:active { color: #f59e0b; }
         .tool-btn.disconnect { color: #ef4444; }
         #hidden-input { position: absolute; top: -100px; left: -100px; opacity: 0; }
     </style>
@@ -108,12 +108,11 @@ MOBILE_HTML = """<!DOCTYPE html>
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = wsProtocol + '//' + window.location.host;
         let ws = null;
-        let myId = "MOB " + Math.floor(100000 + Math.random() * 900000);
+        let myId = "MOB " + Math.floor(100 + Math.random() * 900) + " " + Math.floor(100 + Math.random() * 900);
         let targetId = null;
         let canvas = document.getElementById("canvas");
         let ctx = canvas.getContext("2d");
         let hiddenInput = document.getElementById("hidden-input");
-        let lastTouchTime = 0;
 
         function connectWs() {
             ws = new WebSocket(wsUrl);
@@ -129,18 +128,31 @@ MOBILE_HTML = """<!DOCTYPE html>
                 if (e.data instanceof Blob) {
                     const header = await e.data.slice(0, 6).text();
                     if (header === "FRAME:") {
-                        const imgBlob = e.data.slice(6);
-                        const imgUrl = URL.createObjectURL(imgBlob);
-                        const img = new Image();
-                        img.onload = () => {
-                            if (canvas.width !== img.width || canvas.height !== img.height) {
-                                canvas.width = img.width;
-                                canvas.height = img.height;
+                        const imgBlob = new Blob([e.data.slice(6)], { type: "image/jpeg" });
+                        try {
+                            if (window.createImageBitmap) {
+                                const bmp = await createImageBitmap(imgBlob);
+                                if (canvas.width !== bmp.width || canvas.height !== bmp.height) {
+                                    canvas.width = bmp.width;
+                                    canvas.height = bmp.height;
+                                }
+                                ctx.drawImage(bmp, 0, 0);
+                            } else {
+                                const imgUrl = URL.createObjectURL(imgBlob);
+                                const img = new Image();
+                                img.onload = () => {
+                                    if (canvas.width !== img.width || canvas.height !== img.height) {
+                                        canvas.width = img.width;
+                                        canvas.height = img.height;
+                                    }
+                                    ctx.drawImage(img, 0, 0);
+                                    URL.revokeObjectURL(imgUrl);
+                                };
+                                img.src = imgUrl;
                             }
-                            ctx.drawImage(img, 0, 0);
-                            URL.revokeObjectURL(imgUrl);
-                        };
-                        img.src = imgUrl;
+                        } catch (err) {
+                            console.error("Frame render hatası:", err);
+                        }
                     }
                     return;
                 }
@@ -246,7 +258,6 @@ MOBILE_HTML = """<!DOCTYPE html>
         });
 
         function sendRightClick() {
-            // Ekranın ortasına veya son konuma sağ tık
             ws.send(JSON.stringify({
                 type: "input_event",
                 target_id: targetId,
@@ -317,7 +328,7 @@ async def handle_client(websocket):
             # Format: [11 byte hedef ID ascii][JPEG Data]
             if isinstance(message, bytes):
                 if len(message) > 11:
-                    target_id = message[:11].decode("ascii", errors="ignore")
+                    target_id = message[:11].decode("ascii", errors="ignore").strip()
                     frame_data = message[11:]
                     target_ws = CLIENTS.get(target_id)
                     if target_ws:
@@ -332,13 +343,14 @@ async def handle_client(websocket):
             if msg_type == "register":
                 requested_id = data.get("client_id")
                 if requested_id:
-                    old_ws = CLIENTS.get(requested_id)
+                    clean_id = requested_id.strip()
+                    old_ws = CLIENTS.get(clean_id)
                     if old_ws and old_ws != websocket:
                         try:
                             await old_ws.close()
                         except Exception:
                             pass
-                    client_id = requested_id
+                    client_id = clean_id
                 else:
                     client_id = generate_client_id()
 
@@ -351,7 +363,7 @@ async def handle_client(websocket):
 
             # Bağlantı İsteği (Client A -> Server -> Client B)
             elif msg_type == "connect_request":
-                target_id = data.get("target_id")
+                target_id = str(data.get("target_id", "")).strip()
                 target_ws = CLIENTS.get(target_id)
                 if not target_ws:
                     await websocket.send(json.dumps({
@@ -375,7 +387,7 @@ async def handle_client(websocket):
 
             # Bağlantı Onayı / Reddi (Client B -> Server -> Client A)
             elif msg_type == "connection_response":
-                target_id = data.get("target_id")
+                target_id = str(data.get("target_id", "")).strip()
                 accepted = data.get("accepted", False)
                 requester_ws = CLIENTS.get(target_id)
 
@@ -393,7 +405,7 @@ async def handle_client(websocket):
 
             # Fare ve Klavye Girdileri
             elif msg_type == "input_event":
-                target_id = data.get("target_id")
+                target_id = str(data.get("target_id", "")).strip()
                 target_ws = CLIENTS.get(target_id)
                 if target_ws:
                     await target_ws.send(json.dumps({
@@ -403,7 +415,7 @@ async def handle_client(websocket):
 
             # Oturumu Sonlandırma
             elif msg_type == "session_close":
-                target_id = data.get("target_id")
+                target_id = str(data.get("target_id", "")).strip()
                 if target_id in CLIENTS:
                     await CLIENTS[target_id].send(json.dumps({
                         "type": "session_closed",
