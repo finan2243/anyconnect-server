@@ -80,7 +80,7 @@ MOBILE_HTML = """<!DOCTYPE html>
         .card-dots-btn { padding: 8px 10px; font-size: 20px; color: #9ca3af; }
 
         /* ======================================================== */
-        /* CANLI EKRAN (Viewer) */
+        /* CANLI EKRAN (Viewer) - TAM EKRAN, SIFIR ENGEL!           */
         /* ======================================================== */
         #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; z-index: 1000; }
         #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; }
@@ -90,28 +90,105 @@ MOBILE_HTML = """<!DOCTYPE html>
         #virtual-cursor { position: absolute; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 9999; display: none; transform: translate3d(0px, 0px, 0px); transform-origin: 0 0; will-change: transform; }
         #click-ripple { position: absolute; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; will-change: transform, opacity; }
 
-        /* Üst Durum Rozeti */
-        #status-pill { position: absolute; top: 12px; left: 14px; background: rgba(24, 24, 27, 0.85); border: 1px solid #3f3f46; color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 20px; pointer-events: none; z-index: 10001; }
+        /* Zarif, Otomatik Kaybolan Durum Rozeti (Ekranı Kapatmaz) */
+        #status-toast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.88); border: 1px solid rgba(255,255,255,0.15); color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; pointer-events: none; z-index: 10001; transition: opacity 0.5s ease; opacity: 1; backdrop-filter: blur(8px); }
 
-        /* Alt Ergonomik AnyDesk Hızlı Butonlar Çubuğu */
-        .bottom-bar { position: absolute; bottom: 18px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.94); border: 1px solid rgba(255,255,255,0.18); border-radius: 35px; padding: 6px 14px; display: flex; gap: 7px; align-items: center; z-index: 10001; backdrop-filter: blur(14px); box-shadow: 0 10px 30px rgba(0,0,0,0.7); max-width: 96vw; overflow-x: auto; }
-        .action-btn { background: #27272a; border: 1px solid #3f3f46; color: #ffffff; font-size: 12.5px; font-weight: 600; padding: 7px 11px; border-radius: 20px; cursor: pointer; display: flex; align-items: center; gap: 4px; white-space: nowrap; }
-        .action-btn:active { background: #ef4444; color: white; transform: scale(0.94); }
-        .action-btn.primary { background: #ef4444; border-color: #dc2626; color: white; }
-        .action-btn.icon-only { padding: 7px 10px; font-size: 16px; }
-        .action-btn.danger { background: #7f1d1d; border-color: #991b1b; color: #fca5a5; }
+        /* ======================================================== */
+        /* ANYDESK ORİJİNAL SAĞ KENAR YAY (RADIAL ARC) MENÜSÜ       */
+        /* (Birebir AnyDesk 3. Görsel - Sıfır Ekran Kaplama!)      */
+        /* ======================================================== */
+        #radial-menu-container {
+            position: fixed;
+            right: 0;
+            top: 55%;
+            transform: translateY(-50%);
+            z-index: 10005;
+            user-select: none;
+        }
 
-        /* AnyDesk Araçlar Menüsü Modalı */
-        #anydesk-menu-overlay { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); z-index: 10005; backdrop-filter: blur(6px); align-items: center; justify-content: center; }
-        .anydesk-modal { background: #1e2025; border: 1px solid #3f3f46; border-radius: 18px; width: 88vw; max-width: 360px; padding: 18px; color: #ffffff; box-shadow: 0 16px 40px rgba(0,0,0,0.8); }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #2e323b; padding-bottom: 10px; }
-        .modal-title { font-size: 17px; font-weight: 700; color: #f59e0b; display: flex; align-items: center; gap: 8px; }
-        .modal-close { background: none; border: none; color: #a1a1aa; font-size: 22px; cursor: pointer; }
-        .modal-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .menu-tile { background: #2b2e35; border: 1px solid #3f3f46; border-radius: 12px; padding: 12px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; text-align: center; }
-        .menu-tile:active { background: #ef4444; border-color: #dc2626; }
-        .menu-tile .tile-icon { font-size: 22px; }
-        .menu-tile .tile-label { font-size: 11px; font-weight: 600; color: #e4e4e7; }
+        /* Sağ Kenardaki Küçük Yarı Saydam Tutamaç Buton */
+        #radial-toggle {
+            width: 22px;
+            height: 48px;
+            background: rgba(255, 255, 255, 0.45);
+            border: 1.2px solid rgba(255, 255, 255, 0.65);
+            border-right: none;
+            border-radius: 24px 0 0 24px;
+            box-shadow: -2px 2px 10px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #18181b;
+            transition: transform 0.15s ease, background 0.15s ease;
+        }
+        #radial-toggle:active {
+            transform: scale(0.92);
+            background: rgba(239, 68, 68, 0.8);
+            color: #ffffff;
+        }
+
+        /* Dairesel Yay Butonları */
+        .radial-arc {
+            position: absolute;
+            right: 12px;
+            top: 24px;
+            width: 0;
+            height: 0;
+            pointer-events: none;
+        }
+        .radial-btn {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55), inset 0 1px 1px rgba(255, 255, 255, 0.3);
+            transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.22s ease;
+        }
+        .radial-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+        .radial-btn.red-btn {
+            background: #ef4444;
+            color: #ffffff;
+        }
+        .radial-btn.red-btn:active {
+            background: #dc2626;
+            transform: translate(var(--r-x), var(--r-y)) scale(0.92) !important;
+        }
+        .radial-btn.gray-btn {
+            background: #e4e4e7;
+            border: 1.5px solid #d4d4d8;
+            color: #18181b;
+        }
+        .radial-btn.gray-btn:active {
+            background: #cbd5e1;
+            transform: translate(var(--r-x), var(--r-y)) scale(0.92) !important;
+        }
+        .radial-btn.danger-btn {
+            background: #dc2626;
+        }
+
+        /* Kapalı Durum */
+        .radial-arc-closed .radial-btn {
+            transform: translate(0px, 0px) scale(0.1);
+            opacity: 0;
+            pointer-events: none;
+        }
+        /* Açık Durum (Birebir AnyDesk Yayı) */
+        .radial-arc-open .radial-btn {
+            transform: translate(var(--r-x), var(--r-y)) scale(1);
+            opacity: 1;
+            pointer-events: auto;
+        }
 
         #hidden-input { position: absolute; top: -100px; left: -100px; opacity: 0; }
     </style>
@@ -185,14 +262,15 @@ MOBILE_HTML = """<!DOCTYPE html>
         </div>
     </div>
 
-    <!-- CANLI EKRAN İZLEME VE KONTROL (Viewer) -->
+    <!-- CANLI EKRAN İZLEME VE KONTROL (Viewer) - TAM EKRAN VE SIFIR ENGEL -->
     <div id="viewer-view">
-        <div id="status-pill">● Canlı Yayın Hazır</div>
+        <!-- Otomatik Kaybolan Zarif Bilgi Bildirimi -->
+        <div id="status-toast">● 1080p Ultra HD Canlı</div>
 
         <div id="screen-container">
             <img id="screen-img" alt="Canlı Ekran">
             
-            <!-- Orijinal Windows Aero Fare İmleci -->
+            <!-- Orijinal Windows Aero Fare İmleci (Tip: 0, 0) -->
             <div id="virtual-cursor">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.65));">
                     <path d="M0 0 L0 18.5 L4.5 14 L8 21.5 L11 20 L7.5 12.8 L13.5 12.8 Z" 
@@ -208,64 +286,49 @@ MOBILE_HTML = """<!DOCTYPE html>
             <div id="click-ripple"></div>
         </div>
 
-        <!-- Alt AnyDesk Kontrol Çubuğu -->
-        <div class="bottom-bar">
-            <button class="action-btn primary" onclick="sendDirectClick('left')">🖱️ Sol Tık</button>
-            <button class="action-btn" onclick="sendDoubleClick()">⚡ Çift Tık</button>
-            <button class="action-btn" onclick="sendDirectClick('right')">Sağ Tık</button>
-            <button class="action-btn" onclick="sendHotkey('win')" title="Başlat Menüsü">🪟 Win</button>
-            <button class="action-btn icon-only" onclick="toggleKeyboard()" title="Klavye">⌨️</button>
-            <button class="action-btn icon-only" onclick="openAnyDeskMenu()" title="AnyDesk Menüsü">⚙️</button>
-            <button class="action-btn icon-only danger" onclick="disconnect()" title="Kapat">✕</button>
-        </div>
+        <!-- ======================================================== -->
+        <!-- ANYDESK SAĞ KENAR DİKEY YAY (RADIAL ARC) MENÜSÜ          -->
+        <!-- (Birebir AnyDesk 3. Ekran - Asla yer kaplamaz!)          -->
+        <!-- ======================================================== -->
+        <div id="radial-menu-container">
+            <!-- Yarı Saydam Sağ Kenar Tutamacı -->
+            <div id="radial-toggle" onclick="toggleRadialMenu(event)">
+                <svg viewBox="0 0 24 24" width="12" height="24" fill="none" stroke="#18181b" stroke-width="2.5">
+                    <line x1="8" y1="6" x2="8" y2="18"/>
+                    <line x1="16" y1="10" x2="16" y2="14"/>
+                </svg>
+            </div>
 
-        <!-- AnyDesk Araçlar Menüsü Modalı -->
-        <div id="anydesk-menu-overlay" onclick="closeAnyDeskMenu(event)">
-            <div class="anydesk-modal" onclick="event.stopPropagation()">
-                <div class="modal-header">
-                    <div class="modal-title">
-                        <span>◆ AnyDesk Araçları</span>
-                    </div>
-                    <button class="modal-close" onclick="closeAnyDeskMenu()">✕</button>
-                </div>
-                <div class="modal-grid">
-                    <div class="menu-tile" onclick="sendHotkey('win'); closeAnyDeskMenu();">
-                        <span class="tile-icon">🪟</span>
-                        <span class="tile-label">Başlat</span>
-                    </div>
-                    <div class="menu-tile" onclick="sendHotkey('taskmgr'); closeAnyDeskMenu();">
-                        <span class="tile-icon">⚡</span>
-                        <span class="tile-label">Görev Yön.</span>
-                    </div>
-                    <div class="menu-tile" onclick="toggleInputMode(); closeAnyDeskMenu();">
-                        <span class="tile-icon" id="modal-mode-icon">💻</span>
-                        <span class="tile-label" id="modal-mode-lbl">Touchpad</span>
-                    </div>
-                    <div class="menu-tile" onclick="sendHotkey('copy'); closeAnyDeskMenu();">
-                        <span class="tile-icon">📋</span>
-                        <span class="tile-label">Kopyala</span>
-                    </div>
-                    <div class="menu-tile" onclick="sendHotkey('paste'); closeAnyDeskMenu();">
-                        <span class="tile-icon">📄</span>
-                        <span class="tile-label">Yapıştır</span>
-                    </div>
-                    <div class="menu-tile" onclick="sendHotkey('esc'); closeAnyDeskMenu();">
-                        <span class="tile-icon">⎋</span>
-                        <span class="tile-label">Esc</span>
-                    </div>
-                    <div class="menu-tile" onclick="sendHotkey('enter'); closeAnyDeskMenu();">
-                        <span class="tile-icon">↵</span>
-                        <span class="tile-label">Enter</span>
-                    </div>
-                    <div class="menu-tile" onclick="sendHotkey('tab'); closeAnyDeskMenu();">
-                        <span class="tile-icon">⇥</span>
-                        <span class="tile-label">Tab</span>
-                    </div>
-                    <div class="menu-tile" onclick="toggleFullscreen(); closeAnyDeskMenu();">
-                        <span class="tile-icon">⛶</span>
-                        <span class="tile-label">Tam Ekran</span>
-                    </div>
-                </div>
+            <!-- Dairesel Yay Butonları -->
+            <div id="radial-arc" class="radial-arc radial-arc-closed">
+                <!-- 1. Çift Tık (Dosya / Program Açma) -->
+                <button class="radial-btn red-btn" style="--r-x: -45px; --r-y: -135px;" onclick="sendDoubleClick(); closeRadialMenu();" title="Çift Tık">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+                </button>
+                <!-- 2. Windows Başlat Menüsü -->
+                <button class="radial-btn red-btn" style="--r-x: -85px; --r-y: -90px;" onclick="sendHotkey('win'); closeRadialMenu();" title="Başlat Menüsü">
+                    <svg viewBox="0 0 24 24" fill="white"><path d="M3 12V6.5l7-1v6.5H3zm0 1h7v6.5l-7-1V13zm8-7.6l10-1.4V12h-10V5.4zm0 7.6h10v6.6l-10-1.4V13z"/></svg>
+                </button>
+                <!-- 3. Mod: Touchpad / Dokunmatik (Beyaz/Gri Buton - Birebir AnyDesk) -->
+                <button class="radial-btn gray-btn" id="radial-mode-btn" style="--r-x: -105px; --r-y: -36px;" onclick="toggleInputMode(); closeRadialMenu();" title="Mod Değiştir">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                </button>
+                <!-- 4. Sanal Klavye -->
+                <button class="radial-btn red-btn" style="--r-x: -105px; --r-y: 24px;" onclick="toggleKeyboard(); closeRadialMenu();" title="Klavye">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="6" y1="9" x2="6.01" y2="9"/><line x1="10" y1="9" x2="10.01" y2="9"/><line x1="14" y1="9" x2="14.01" y2="9"/><line x1="18" y1="9" x2="18.01" y2="9"/><line x1="6" y1="13" x2="6.01" y2="13"/><line x1="18" y1="13" x2="18.01" y2="13"/><line x1="9" y1="13" x2="15" y2="13"/></svg>
+                </button>
+                <!-- 5. Sağ Tık -->
+                <button class="radial-btn red-btn" style="--r-x: -85px; --r-y: 78px;" onclick="sendDirectClick('right'); closeRadialMenu();" title="Sağ Tık">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><rect x="5" y="2" width="14" height="20" rx="7"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="5" y1="9" x2="19" y2="9"/><rect x="12" y="2" width="7" height="7" fill="white" opacity="0.6"/></svg>
+                </button>
+                <!-- 6. Görev Yöneticisi -->
+                <button class="radial-btn red-btn" style="--r-x: -45px; --r-y: 125px;" onclick="sendHotkey('taskmgr'); closeRadialMenu();" title="Görev Yöneticisi">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </button>
+                <!-- 7. Bağlantıyı Kapat (Disconnect) -->
+                <button class="radial-btn red-btn danger-btn" style="--r-x: 0px; --r-y: 168px;" onclick="disconnect(); closeRadialMenu();" title="Kapat">
+                    <svg viewBox="0 0 24 24" stroke="white" stroke-width="2.5" stroke-linecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                </button>
             </div>
         </div>
 
@@ -283,14 +346,15 @@ MOBILE_HTML = """<!DOCTYPE html>
         const screenCont = document.getElementById("screen-container");
         const vCursor = document.getElementById("virtual-cursor");
         const ripple = document.getElementById("click-ripple");
-        const statusPill = document.getElementById("status-pill");
+        const statusToast = document.getElementById("status-toast");
         const hiddenInput = document.getElementById("hidden-input");
-        const menuOverlay = document.getElementById("anydesk-menu-overlay");
+        const radialArc = document.getElementById("radial-arc");
         
         let frameCount = 0;
         let currentUrl = null;
         let isRendering = false;
         let pendingFrameBuffer = null;
+        let isRadialOpen = false;
 
         // Mod: 'trackpad' (Laptop dokunmatik yüzeyi gibi imleç kaldığı yerden devam eder)
         let inputMode = "trackpad"; 
@@ -311,12 +375,24 @@ MOBILE_HTML = """<!DOCTYPE html>
             if (e.key === "Enter") startConnection();
         });
 
-        // AnyDesk Menüsü
-        function openAnyDeskMenu() {
-            menuOverlay.style.display = "flex";
+        // AnyDesk Sağ Kenar Dairesel Yay Menüsü
+        function toggleRadialMenu(e) {
+            if (e) e.stopPropagation();
+            isRadialOpen = !isRadialOpen;
+            if (isRadialOpen) {
+                radialArc.classList.remove("radial-arc-closed");
+                radialArc.classList.add("radial-arc-open");
+            } else {
+                radialArc.classList.remove("radial-arc-open");
+                radialArc.classList.add("radial-arc-closed");
+            }
         }
-        function closeAnyDeskMenu(e) {
-            menuOverlay.style.display = "none";
+        function closeRadialMenu() {
+            if (isRadialOpen) {
+                isRadialOpen = false;
+                radialArc.classList.remove("radial-arc-open");
+                radialArc.classList.add("radial-arc-closed");
+            }
         }
 
         // Papağan ve Masaüstü Önizleme SVG/Thumbnails
@@ -379,8 +455,10 @@ MOBILE_HTML = """<!DOCTYPE html>
                 if (oldUrl) URL.revokeObjectURL(oldUrl);
                 isRendering = false;
                 frameCount++;
-                if (frameCount % 30 === 0) {
-                    statusPill.innerText = `● Canlı (${frameCount} kare)`;
+                
+                // İlk 3 saniye sonra bildirim yazısını gizle (ekranı kapatmasın)
+                if (frameCount === 30) {
+                    statusToast.style.opacity = "0";
                 }
                 updateCachedRect();
                 if (inputMode === "trackpad") {
@@ -433,7 +511,8 @@ MOBILE_HTML = """<!DOCTYPE html>
                         document.querySelector(".app-header").style.display = "none";
                         document.getElementById("viewer-view").style.display = "block";
                         vCursor.style.display = inputMode === "trackpad" ? "block" : "none";
-                        statusPill.innerText = `● ${targetId} Bağlandı`;
+                        statusToast.innerText = `● 1080p Ultra HD Canlı`;
+                        statusToast.style.opacity = "1";
                         setTimeout(() => {
                             updateCachedRect();
                             renderCursorPos();
@@ -464,7 +543,8 @@ MOBILE_HTML = """<!DOCTYPE html>
                 alert("Lütfen bağlanılacak adresi girin!");
                 return;
             }
-            statusPill.innerText = `● ${targetId} Aranıyor...`;
+            statusToast.innerText = `● ${targetId} Aranıyor...`;
+            statusToast.style.opacity = "1";
             ws.send(JSON.stringify({
                 type: "connect_request",
                 target_id: targetId
@@ -514,15 +594,11 @@ MOBILE_HTML = """<!DOCTYPE html>
             if (inputMode === "trackpad") {
                 inputMode = "direct";
                 vCursor.style.display = "none";
-                statusPill.innerText = "● Mod: Doğrudan Dokunma";
-                document.getElementById("modal-mode-icon").innerText = "👆";
-                document.getElementById("modal-mode-lbl").innerText = "Dokunmatik";
+                document.getElementById("radial-mode-btn").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2"><path d="M12 2a4 4 0 00-4 4v7a4 4 0 008 0V6a4 4 0 00-4-4z"/></svg>`;
             } else {
                 inputMode = "trackpad";
                 vCursor.style.display = "block";
-                statusPill.innerText = "● Mod: Touchpad";
-                document.getElementById("modal-mode-icon").innerText = "💻";
-                document.getElementById("modal-mode-lbl").innerText = "Touchpad";
+                document.getElementById("radial-mode-btn").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>`;
                 renderCursorPos();
             }
         }
@@ -567,6 +643,7 @@ MOBILE_HTML = """<!DOCTYPE html>
 
         // DOKUNMATİK EKRAN: İMLEÇ ASLA ZIPLAMAZ, KALDIĞI YERDEN DEVAM EDER!
         screenCont.addEventListener("touchstart", (e) => {
+            closeRadialMenu(); // Ekrana dokunulduğunda radyal menüyü kapat
             if (e.touches.length === 1) {
                 const t = e.touches[0];
                 touchStartX = t.clientX;
@@ -584,7 +661,6 @@ MOBILE_HTML = """<!DOCTYPE html>
                     }
                 } else {
                     // Trackpad Modu: Parmak ekrana değdiğinde imleç YERİNDE KALIR!
-                    // Uzun basma = Sağ tık kontrolü (450ms)
                     clearTimeout(longPressTimer);
                     longPressTimer = setTimeout(() => {
                         if (!isTouchMoving && inputMode === "trackpad") {
@@ -677,17 +753,6 @@ MOBILE_HTML = """<!DOCTYPE html>
             }
         });
 
-        // Çift parmak tek tık = Sağ Tık
-        screenCont.addEventListener("touchstart", (e) => {
-            if (e.touches.length === 2) {
-                setTimeout(() => {
-                    if (e.touches.length === 0 && Date.now() - touchStartTime < 300) {
-                        sendDirectClick("right");
-                    }
-                }, 200);
-            }
-        });
-
         function toggleKeyboard() {
             hiddenInput.focus();
         }
@@ -720,14 +785,6 @@ MOBILE_HTML = """<!DOCTYPE html>
                 sendHotkey("enter");
             }
         });
-
-        function toggleFullscreen() {
-            if (!document.fullscreenElement) {
-                document.documentElement.requestFullscreen().catch(() => {});
-            } else {
-                document.exitFullscreen().catch(() => {});
-            }
-        }
 
         function disconnect() {
             if (ws && targetId) {
