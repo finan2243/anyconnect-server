@@ -837,14 +837,6 @@ class HanedanApp(ctk.CTk):
 
     def _send_binary_frame_safe(self, target_id, frame_bytes):
         if self.ws and self.loop and self.connected_to_server:
-            try:
-                # Ağ birikmesini ve tampon şişmesini engelle (Donma ve gecikmeyi sıfırlar)
-                transport = getattr(self.ws, "transport", None)
-                if transport and hasattr(transport, "get_write_buffer_size"):
-                    if transport.get_write_buffer_size() > 128 * 1024:
-                        return
-            except Exception:
-                pass
             header = target_id.ljust(11).encode("ascii")
             payload = header + frame_bytes
             asyncio.run_coroutine_threadsafe(self.ws.send(payload), self.loop)
@@ -939,14 +931,14 @@ class HanedanApp(ctk.CTk):
 
         def stream_worker():
             is_mobile = str(viewer_id).strip().startswith("MOB")
-            # Kristal netlikte 1080p Full HD akış ve sıfır gecikmeli yerel imleç
-            active_capturer = ScreenCapturer(quality=78, scale=1.0, draw_cursor=False) if is_mobile else self.capturer
+            # Kristal netlikte 1080p Full HD akış (quality=68: ~60KB/kare, takılmadan anlık 30 FPS akar)
+            active_capturer = ScreenCapturer(quality=68, scale=1.0, draw_cursor=False) if is_mobile else self.capturer
             last_cur_x, last_cur_y = -1, -1
 
             while self.is_sharing_screen and self.current_peer_id == viewer_id:
                 if is_mobile:
-                    # İstemci önceki kareyi ekrana basıp onaylayana kadar bekle (Maksimum 80ms)
-                    self.frame_ack_event.wait(timeout=0.08)
+                    # İstemci önceki kareyi ekrana basıp onaylayana kadar bekle (Maksimum 150ms)
+                    self.frame_ack_event.wait(timeout=0.15)
                     self.frame_ack_event.clear()
 
                 frame = active_capturer.capture_frame()
@@ -979,8 +971,7 @@ class HanedanApp(ctk.CTk):
                     except Exception:
                         pass
 
-                if not is_mobile:
-                    time.sleep(0.033)
+                time.sleep(0.015 if is_mobile else 0.033)
 
         threading.Thread(target=stream_worker, daemon=True).start()
 
