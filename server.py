@@ -82,13 +82,13 @@ MOBILE_HTML = """<!DOCTYPE html>
         /* ======================================================== */
         /* CANLI EKRAN (Viewer) - TAM EKRAN, SIFIR ENGEL!           */
         /* ======================================================== */
-        #viewer-view { display: none; width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; background: #000000; touch-action: none; overflow: hidden; z-index: 1000; }
-        #screen-container { width: 100vw; height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; touch-action: none; }
-        #screen-img { max-width: 100vw; max-height: 100vh; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+        #viewer-view { display: none; position: fixed; inset: 0; width: 100%; height: 100%; background: #000000; touch-action: none; overflow: hidden; z-index: 1000; }
+        #screen-container { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; touch-action: none; }
+        #screen-img { max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 
         /* Orijinal Windows Aero Fare İmleci (Tip: 0, 0) */
-        #virtual-cursor { position: absolute; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 9999; display: none; transform: translate3d(0px, 0px, 0px); transform-origin: 0 0; will-change: transform; }
-        #click-ripple { position: absolute; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; will-change: transform, opacity; }
+        #virtual-cursor { position: fixed; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 9999; display: none; transform: translate3d(0px, 0px, 0px); transform-origin: 0 0; will-change: transform; }
+        #click-ripple { position: fixed; top: 0; left: 0; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; will-change: transform, opacity; }
 
         /* Zarif, Otomatik Kaybolan Durum Rozeti (Ekranı Kapatmaz) */
         #status-toast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.88); border: 1px solid rgba(255,255,255,0.15); color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; pointer-events: none; z-index: 10001; transition: opacity 0.5s ease; opacity: 1; backdrop-filter: blur(8px); }
@@ -359,13 +359,38 @@ MOBILE_HTML = """<!DOCTYPE html>
         // Mod: 'trackpad' (Laptop dokunmatik yüzeyi gibi imleç kaldığı yerden devam eder)
         let inputMode = "trackpad"; 
 
-        // Ekran koordinat önbelleği
-        let cachedRect = { left: 0, top: 0, width: 1, height: 1 };
-        function updateCachedRect() {
+        // 1:1 Milimetrik Masaüstü Alanı Hesaplayıcı (Siyah Boşlukları / Letterbox'ı Kusursuz Çıkarır)
+        function getRenderedDesktopRect() {
             const r = screenImg.getBoundingClientRect();
-            if (r.width > 0 && r.height > 0) {
-                cachedRect = r;
+            const natW = screenImg.naturalWidth || 1920;
+            const natH = screenImg.naturalHeight || 1080;
+            const natRatio = natW / natH;
+            const visRatio = r.width / (r.height || 1);
+
+            let renderedW = r.width;
+            let renderedH = r.height;
+            let renderedL = r.left;
+            let renderedT = r.top;
+
+            if (visRatio > natRatio) {
+                // Ekran resimden daha geniş (Sağ ve solda siyah şeritler var)
+                renderedW = r.height * natRatio;
+                renderedL = r.left + (r.width - renderedW) / 2;
+            } else {
+                // Ekran resimden daha dar (Üst ve altta siyah şeritler var)
+                renderedH = r.width / natRatio;
+                renderedT = r.top + (r.height - renderedH) / 2;
             }
+
+            return {
+                left: renderedL,
+                top: renderedT,
+                width: renderedW,
+                height: renderedH
+            };
+        }
+        function updateCachedRect() {
+            renderCursorPos();
         }
         window.addEventListener("resize", updateCachedRect);
         window.addEventListener("orientationchange", () => setTimeout(updateCachedRect, 150));
@@ -523,6 +548,13 @@ MOBILE_HTML = """<!DOCTYPE html>
                     } else {
                         alert("Bilgisayar bağlantıyı reddetti veya oturum kapalı!");
                     }
+                } else if (data.type === "cursor_pos") {
+                    // Bilgisayarın gerçek imleç konumunu anlık alıp telefona birebir eşitle (1:1 lockstep)
+                    if (!isTouchMoving) {
+                        curRx = data.rx;
+                        curRy = data.ry;
+                        renderCursorPos();
+                    }
                 } else if (data.type === "session_closed") {
                     disconnect();
                     alert("Uzak bağlantı sonlandırıldı.");
@@ -569,9 +601,10 @@ MOBILE_HTML = """<!DOCTYPE html>
         let lastScrollY = 0;
 
         function renderCursorPos() {
-            if (cachedRect.width > 0 && cachedRect.height > 0) {
-                const px = cachedRect.left + (curRx * cachedRect.width);
-                const py = cachedRect.top + (curRy * cachedRect.height);
+            const rect = getRenderedDesktopRect();
+            if (rect.width > 0 && rect.height > 0) {
+                const px = rect.left + (curRx * rect.width);
+                const py = rect.top + (curRy * rect.height);
                 vCursor.style.transform = `translate3d(${px}px, ${py}px, 0)`;
             }
         }
@@ -610,15 +643,17 @@ MOBILE_HTML = """<!DOCTYPE html>
                 target_id: targetId,
                 event: { kind: "hotkey", action: action }
             }));
-            const px = cachedRect.left + (curRx * cachedRect.width);
-            const py = cachedRect.top + (curRy * cachedRect.height);
+            const rect = getRenderedDesktopRect();
+            const px = rect.left + (curRx * rect.width);
+            const py = rect.top + (curRy * rect.height);
             playRipple(px, py);
         }
 
         function sendDirectClick(btn) {
             if (!ws || !targetId) return;
-            const px = cachedRect.left + (curRx * cachedRect.width);
-            const py = cachedRect.top + (curRy * cachedRect.height);
+            const rect = getRenderedDesktopRect();
+            const px = rect.left + (curRx * rect.width);
+            const py = rect.top + (curRy * rect.height);
             playRipple(px, py);
 
             ws.send(JSON.stringify({
@@ -630,8 +665,9 @@ MOBILE_HTML = """<!DOCTYPE html>
 
         function sendDoubleClick() {
             if (!ws || !targetId) return;
-            const px = cachedRect.left + (curRx * cachedRect.width);
-            const py = cachedRect.top + (curRy * cachedRect.height);
+            const rect = getRenderedDesktopRect();
+            const px = rect.left + (curRx * rect.width);
+            const py = rect.top + (curRy * rect.height);
             playRipple(px, py);
 
             ws.send(JSON.stringify({
@@ -654,9 +690,10 @@ MOBILE_HTML = """<!DOCTYPE html>
                 isTouchMoving = false;
 
                 if (inputMode === "direct") {
-                    if (cachedRect.width > 0 && cachedRect.height > 0) {
-                        curRx = Math.max(0, Math.min(1, (t.clientX - cachedRect.left) / cachedRect.width));
-                        curRy = Math.max(0, Math.min(1, (t.clientY - cachedRect.top) / cachedRect.height));
+                    const rect = getRenderedDesktopRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        curRx = Math.max(0, Math.min(1, (t.clientX - rect.left) / rect.width));
+                        curRy = Math.max(0, Math.min(1, (t.clientY - rect.top) / rect.height));
                         sendDirectClick("left");
                     }
                 } else {
@@ -689,18 +726,18 @@ MOBILE_HTML = """<!DOCTYPE html>
                     clearTimeout(longPressTimer);
                 }
 
+                const rect = getRenderedDesktopRect();
                 if (inputMode === "trackpad") {
-                    // HASSAS VE DOĞAL HAREKET: İmleç mevcut konumundan kayar!
-                    const sens = 1.35;
-                    const w = cachedRect.width > 0 ? cachedRect.width : window.innerWidth;
-                    const h = cachedRect.height > 0 ? cachedRect.height : window.innerHeight;
-                    curRx = Math.max(0, Math.min(1, curRx + (dx / w) * sens));
-                    curRy = Math.max(0, Math.min(1, curRy + (dy / h) * sens));
+                    // 1:1 HASSAS VE DOĞAL HAREKET (Siyah şeritler hariç gerçek masaüstü ölçeği)
+                    const w = rect.width > 0 ? rect.width : window.innerWidth;
+                    const h = rect.height > 0 ? rect.height : window.innerHeight;
+                    curRx = Math.max(0, Math.min(1, curRx + (dx / w)));
+                    curRy = Math.max(0, Math.min(1, curRy + (dy / h)));
                     renderCursorPos();
                 } else {
-                    if (cachedRect.width > 0 && cachedRect.height > 0) {
-                        curRx = Math.max(0, Math.min(1, (t.clientX - cachedRect.left) / cachedRect.width));
-                        curRy = Math.max(0, Math.min(1, (t.clientY - cachedRect.top) / cachedRect.height));
+                    if (rect.width > 0 && rect.height > 0) {
+                        curRx = Math.max(0, Math.min(1, (t.clientX - rect.left) / rect.width));
+                        curRy = Math.max(0, Math.min(1, (t.clientY - rect.top) / rect.height));
                     }
                 }
 
@@ -895,6 +932,17 @@ async def handle_client(websocket):
                 if target_ws:
                     await target_ws.send(json.dumps({
                         "type": "frame_ack"
+                    }))
+
+            # Gerçek Windows İmleç Konumu Senkronizasyonu (1:1 Eşitleme)
+            elif msg_type == "cursor_pos":
+                target_id = str(data.get("target_id", "")).strip()
+                target_ws = CLIENTS.get(target_id)
+                if target_ws:
+                    await target_ws.send(json.dumps({
+                        "type": "cursor_pos",
+                        "rx": data.get("rx"),
+                        "ry": data.get("ry")
                     }))
 
             # Fare ve Klavye Girdileri
