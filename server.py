@@ -84,11 +84,12 @@ MOBILE_HTML = """<!DOCTYPE html>
         /* ======================================================== */
         #viewer-view { display: none; position: fixed; inset: 0; width: 100%; height: 100%; background: #000000; touch-action: none; overflow: hidden; z-index: 1000; }
         #screen-container { position: fixed; inset: 0; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; touch-action: none; }
-        #screen-img { max-width: 100%; max-height: 100%; width: 100%; height: 100%; object-fit: contain; user-select: none; -webkit-user-drag: none; pointer-events: none; }
+        #desktop-stage { position: relative; display: inline-block; line-height: 0; user-select: none; touch-action: none; }
+        #screen-img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; pointer-events: none; }
 
-        /* Orijinal Windows Aero Fare İmleci (Tip: 0, 0) */
-        #virtual-cursor { position: fixed; top: 0; left: 0; width: 24px; height: 24px; pointer-events: none; z-index: 9999; display: none; transform: translate3d(0px, 0px, 0px); transform-origin: 0 0; will-change: transform; }
-        #click-ripple { position: fixed; top: 0; left: 0; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; will-change: transform, opacity; }
+        /* Orijinal Windows Aero Fare İmleci (Tip: 0, 0) - Yüzdesel 1:1 Kilitli */
+        #virtual-cursor { position: absolute; top: 50%; left: 50%; width: 24px; height: 24px; pointer-events: none; z-index: 9999; display: none; transform-origin: 0 0; }
+        #click-ripple { position: absolute; top: 50%; left: 50%; width: 36px; height: 36px; border-radius: 50%; border: 2.5px solid #ef4444; background: rgba(239, 68, 68, 0.25); pointer-events: none; transform: translate(-50%, -50%) scale(0); opacity: 0; z-index: 9998; will-change: transform, opacity; }
 
         /* Zarif, Otomatik Kaybolan Durum Rozeti (Ekranı Kapatmaz) */
         #status-toast { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); background: rgba(24, 24, 27, 0.88); border: 1px solid rgba(255,255,255,0.15); color: #22c55e; font-size: 11px; font-weight: 600; padding: 4px 14px; border-radius: 20px; pointer-events: none; z-index: 10001; transition: opacity 0.5s ease; opacity: 1; backdrop-filter: blur(8px); }
@@ -268,22 +269,24 @@ MOBILE_HTML = """<!DOCTYPE html>
         <div id="status-toast">● 1080p Ultra HD Canlı</div>
 
         <div id="screen-container">
-            <img id="screen-img" alt="Canlı Ekran">
-            
-            <!-- Orijinal Windows Aero Fare İmleci (Tip: 0, 0) -->
-            <div id="virtual-cursor">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.65));">
-                    <path d="M0 0 L0 18.5 L4.5 14 L8 21.5 L11 20 L7.5 12.8 L13.5 12.8 Z" 
-                          fill="#FFFFFF" 
-                          stroke="#000000" 
-                          stroke-width="1.3" 
-                          stroke-linejoin="miter" 
-                          stroke-miterlimit="4"/>
-                </svg>
+            <div id="desktop-stage">
+                <img id="screen-img" alt="Canlı Ekran">
+                
+                <!-- Orijinal Windows Aero Fare İmleci (Tip: 0, 0) -->
+                <div id="virtual-cursor">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style="filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.65));">
+                        <path d="M0 0 L0 18.5 L4.5 14 L8 21.5 L11 20 L7.5 12.8 L13.5 12.8 Z" 
+                              fill="#FFFFFF" 
+                              stroke="#000000" 
+                              stroke-width="1.3" 
+                              stroke-linejoin="miter" 
+                              stroke-miterlimit="4"/>
+                    </svg>
+                </div>
+                
+                <!-- Tıklama Halkası (Ripple) -->
+                <div id="click-ripple"></div>
             </div>
-            
-            <!-- Tıklama Halkası (Ripple) -->
-            <div id="click-ripple"></div>
         </div>
 
         <!-- ======================================================== -->
@@ -344,6 +347,7 @@ MOBILE_HTML = """<!DOCTYPE html>
         
         const screenImg = document.getElementById("screen-img");
         const screenCont = document.getElementById("screen-container");
+        const desktopStage = document.getElementById("desktop-stage");
         const vCursor = document.getElementById("virtual-cursor");
         const ripple = document.getElementById("click-ripple");
         const statusToast = document.getElementById("status-toast");
@@ -359,41 +363,39 @@ MOBILE_HTML = """<!DOCTYPE html>
         // Mod: 'trackpad' (Laptop dokunmatik yüzeyi gibi imleç kaldığı yerden devam eder)
         let inputMode = "trackpad"; 
 
-        // 1:1 Milimetrik Masaüstü Alanı Hesaplayıcı (Siyah Boşlukları / Letterbox'ı Kusursuz Çıkarır)
-        function getRenderedDesktopRect() {
-            const r = screenImg.getBoundingClientRect();
+        // 1:1 Milimetrik Masaüstü Sahnesi Boyutlandırıcı (Sıfır siyah boşluk, %100 gerçek masaüstü alanı)
+        function fitDesktopStage() {
+            const vw = screenCont.clientWidth || window.innerWidth;
+            const vh = screenCont.clientHeight || window.innerHeight;
             const natW = screenImg.naturalWidth || 1920;
             const natH = screenImg.naturalHeight || 1080;
             const natRatio = natW / natH;
-            const visRatio = r.width / (r.height || 1);
+            const visRatio = vw / (vh || 1);
 
-            let renderedW = r.width;
-            let renderedH = r.height;
-            let renderedL = r.left;
-            let renderedT = r.top;
-
+            let stageW = vw;
+            let stageH = vh;
             if (visRatio > natRatio) {
-                // Ekran resimden daha geniş (Sağ ve solda siyah şeritler var)
-                renderedW = r.height * natRatio;
-                renderedL = r.left + (r.width - renderedW) / 2;
+                stageH = vh;
+                stageW = vh * natRatio;
             } else {
-                // Ekran resimden daha dar (Üst ve altta siyah şeritler var)
-                renderedH = r.width / natRatio;
-                renderedT = r.top + (r.height - renderedH) / 2;
+                stageW = vw;
+                stageH = vw / natRatio;
             }
-
-            return {
-                left: renderedL,
-                top: renderedT,
-                width: renderedW,
-                height: renderedH
-            };
+            desktopStage.style.width = stageW + "px";
+            desktopStage.style.height = stageH + "px";
+        }
+        function getRenderedDesktopRect() {
+            return desktopStage.getBoundingClientRect();
         }
         function updateCachedRect() {
+            fitDesktopStage();
             renderCursorPos();
         }
         window.addEventListener("resize", updateCachedRect);
         window.addEventListener("orientationchange", () => setTimeout(updateCachedRect, 150));
+        if (window.visualViewport) {
+            window.visualViewport.addEventListener("resize", updateCachedRect);
+        }
 
         // Enter tuşuyla bağlanma
         document.getElementById("txt-target").addEventListener("keypress", (e) => {
@@ -601,17 +603,13 @@ MOBILE_HTML = """<!DOCTYPE html>
         let lastScrollY = 0;
 
         function renderCursorPos() {
-            const rect = getRenderedDesktopRect();
-            if (rect.width > 0 && rect.height > 0) {
-                const px = rect.left + (curRx * rect.width);
-                const py = rect.top + (curRy * rect.height);
-                vCursor.style.transform = `translate3d(${px}px, ${py}px, 0)`;
-            }
+            vCursor.style.left = (curRx * 100) + "%";
+            vCursor.style.top = (curRy * 100) + "%";
         }
 
-        function playRipple(px, py) {
-            ripple.style.left = px + "px";
-            ripple.style.top = py + "px";
+        function playRipple() {
+            ripple.style.left = (curRx * 100) + "%";
+            ripple.style.top = (curRy * 100) + "%";
             ripple.style.transition = "none";
             ripple.style.transform = "translate(-50%, -50%) scale(0)";
             ripple.style.opacity = "1";
@@ -643,18 +641,12 @@ MOBILE_HTML = """<!DOCTYPE html>
                 target_id: targetId,
                 event: { kind: "hotkey", action: action }
             }));
-            const rect = getRenderedDesktopRect();
-            const px = rect.left + (curRx * rect.width);
-            const py = rect.top + (curRy * rect.height);
-            playRipple(px, py);
+            playRipple();
         }
 
         function sendDirectClick(btn) {
             if (!ws || !targetId) return;
-            const rect = getRenderedDesktopRect();
-            const px = rect.left + (curRx * rect.width);
-            const py = rect.top + (curRy * rect.height);
-            playRipple(px, py);
+            playRipple();
 
             ws.send(JSON.stringify({
                 type: "input_event",
@@ -665,10 +657,7 @@ MOBILE_HTML = """<!DOCTYPE html>
 
         function sendDoubleClick() {
             if (!ws || !targetId) return;
-            const rect = getRenderedDesktopRect();
-            const px = rect.left + (curRx * rect.width);
-            const py = rect.top + (curRy * rect.height);
-            playRipple(px, py);
+            playRipple();
 
             ws.send(JSON.stringify({
                 type: "input_event",
