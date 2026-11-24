@@ -402,6 +402,16 @@ MOBILE_HTML = """<!DOCTYPE html>
             if (e.key === "Enter") startConnection();
         });
 
+        // URL'den gelen ?target=... parametresini otomatik kutuya doldur ve bağlan
+        window.addEventListener("DOMContentLoaded", () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const autoTarget = urlParams.get("target");
+            if (autoTarget) {
+                document.getElementById("txt-target").value = autoTarget;
+                setTimeout(startConnection, 500);
+            }
+        });
+
         // AnyDesk Sağ Kenar Dairesel Yay Menüsü
         function toggleRadialMenu(e) {
             if (e) e.stopPropagation();
@@ -1001,8 +1011,27 @@ async def process_http_request(connection, request):
 
     path = request.path.split("?")[0]
     
-    # AnyDesk Mobil Web Sayfası
-    if path == "/" or path == "/index.html" or path == "/mobile":
+    # 1. AlfaDesk Resmi Web Sitesi (SEO & İndirme Vitrini)
+    if path == "/" or path == "/index.html":
+        site_file = os.path.join(os.path.dirname(__file__), "website", "index.html")
+        if os.path.exists(site_file):
+            with open(site_file, "r", encoding="utf-8") as f:
+                html_content = f.read()
+        else:
+            html_content = MOBILE_HTML
+
+        return Response(
+            200, 
+            "OK", 
+            Headers([
+                ("Content-Type", "text/html; charset=utf-8"),
+                ("Cache-Control", "no-cache")
+            ]), 
+            html_content.encode("utf-8")
+        )
+
+    # 2. AlfaDesk Mobil & Web Canlı İzleyici Arayüzü
+    if path == "/mobile" or path == "/app":
         return Response(
             200, 
             "OK", 
@@ -1013,12 +1042,31 @@ async def process_http_request(connection, request):
             MOBILE_HTML.encode("utf-8")
         )
 
-    # Sürüm Kontrolü
+    # 3. Logo ve Favicon Desteği
+    if path in ["/logo.png", "/favicon.ico"]:
+        file_name = "logo.png" if path == "/logo.png" else "favicon.ico"
+        file_path = os.path.join(os.path.dirname(__file__), "website", file_name)
+        if not os.path.exists(file_path):
+            file_path = os.path.join(os.path.dirname(__file__), file_name)
+        if os.path.exists(file_path):
+            with open(file_path, "rb") as f:
+                content = f.read()
+            mime = "image/png" if file_name.endswith(".png") else "image/x-icon"
+            return Response(
+                200, "OK",
+                Headers([
+                    ("Content-Type", mime),
+                    ("Cache-Control", "public, max-age=86400")
+                ]),
+                content
+            )
+
+    # 4. Sürüm Kontrolü ve Otomatik Güncelleme Bilgisi
     if path == "/version.json":
         v_data = json.dumps({
-            "version": "1.5",
+            "version": "1.7",
             "download_url": "https://raw.githubusercontent.com/finan2243/anyconnect-server/main/AnyConnect.exe",
-            "notes": "Tam AnyDesk mobil menusu, Windows Aero imleci, Win tusu ve sifir gecikme"
+            "notes": "AlfaDesk: AnyDesk toolbar, ACK tabanli sifir gecikme, gozetimsiz parola ve dosya aktarimi"
         })
         return Response(
             200, 

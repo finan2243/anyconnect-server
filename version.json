@@ -1,5 +1,5 @@
 {
-  "version": "1.6",
+  "version": "1.7",
   "download_url": "https://raw.githubusercontent.com/finan2243/anyconnect-server/main/AnyConnect.exe",
-  "notes": "AlfaDesk Uzaktan Baglanti: AnyDesk toolbar, sifir gecikmeli ACK motoru, gozetimsiz parola, pano esitleme, dosya aktarimi ve canli sohbet"
+  "notes": "AlfaDesk v1.7: Cam gibi 4:4:4 HD metin kalitesi, 3x hizli Pipelined FPS, sifir imlec gecikmesi ve %100 Win32 Ctrl+C/V pano esitleme"
 }
