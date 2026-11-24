@@ -25,10 +25,10 @@ MOBILE_HTML = """<!DOCTYPE html>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>AnyDesk</title>
+    <title>AlfaDesk</title>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="AnyDesk">
+    <meta name="apple-mobile-web-app-title" content="AlfaDesk">
     <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><polygon points='25,50 50,25 75,50 50,75' fill='%23ef4444'/></svg>">
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
@@ -208,7 +208,7 @@ MOBILE_HTML = """<!DOCTYPE html>
                 <polygon points="12,20 20,12 28,20 20,28" fill="none" stroke="#ef4444" stroke-width="4.5" stroke-linejoin="round"/>
                 <polygon points="20,20 28,12 36,20 28,28" fill="#ef4444"/>
             </svg>
-            <span class="header-logo-text">AnyDesk</span>
+            <span class="header-logo-text">AlfaDesk</span>
         </div>
         <button class="header-menu-btn" onclick="openAnyDeskMenu()">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#18181b" stroke-width="2.2" stroke-linecap="round">
@@ -764,8 +764,18 @@ MOBILE_HTML = """<!DOCTYPE html>
             if (e.touches.length === 0) {
                 const duration = Date.now() - touchStartTime;
 
+                // Parmak ekrandan kalkarken son imleç koordinatını kesinlikle senkronize et!
+                if (isTouchMoving && ws && targetId) {
+                    ws.send(JSON.stringify({
+                        type: "input_event",
+                        target_id: targetId,
+                        event: { kind: "mouse_move", rx: curRx, ry: curRy }
+                    }));
+                }
+                isTouchMoving = false;
+
                 // Parmak sadece tıklandıysa (hareket etmeden bırakıldıysa):
-                if (inputMode === "trackpad" && !isTouchMoving && duration < 380) {
+                if (inputMode === "trackpad" && duration < 380 && Math.hypot(lastTouchX - touchStartX, lastTouchY - touchStartY) <= 8) {
                     const now = Date.now();
                     const isDouble = (now - lastTapTime < 320);
                     lastTapTime = now;
@@ -955,6 +965,14 @@ async def handle_client(websocket):
                 SESSIONS.pop(client_id, None)
                 SESSIONS.pop(target_id, None)
 
+            # Genel Eşler Arası Mesaj Yönlendirme (Pano, Sohbet, Dosya Transferi, Şifre Doğrulama, Kalite Değişimi vb.)
+            elif "target_id" in data:
+                target_id = str(data.get("target_id", "")).strip()
+                target_ws = CLIENTS.get(target_id)
+                if target_ws:
+                    data["from_id"] = client_id
+                    await target_ws.send(json.dumps(data))
+
     except websockets.exceptions.ConnectionClosed:
         pass
     except Exception as e:
@@ -1017,7 +1035,7 @@ async def process_http_request(connection, request):
 async def main():
     host = "0.0.0.0"
     port = int(os.environ.get("PORT", 8765))
-    logger.info(f"=== HANEDAN ANYDESK RELAY & MOBİL WEB SUNUCUSU ({host}:{port}) ===")
+    logger.info(f"=== ALFADESK RELAY & MOBİL WEB SUNUCUSU ({host}:{port}) ===")
     
     async with websockets.serve(
         handle_client, 

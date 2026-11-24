@@ -1,5 +1,5 @@
 {
-  "version": "1.5",
+  "version": "1.6",
   "download_url": "https://raw.githubusercontent.com/finan2243/anyconnect-server/main/AnyConnect.exe",
-  "notes": "Orijinal Windows Aero imleci, ACK tabanli sifir gecikmeli akis ve aninda tiklama"
+  "notes": "AlfaDesk Uzaktan Baglanti: AnyDesk toolbar, sifir gecikmeli ACK motoru, gozetimsiz parola, pano esitleme, dosya aktarimi ve canli sohbet"
 }
