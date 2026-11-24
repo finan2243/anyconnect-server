@@ -1,5 +1,5 @@
 {
-  "version": "1.7",
+  "version": "1.8",
   "download_url": "https://raw.githubusercontent.com/finan2243/anyconnect-server/main/AnyConnect.exe",
-  "notes": "AlfaDesk v1.7: Cam gibi 4:4:4 HD metin kalitesi, 3x hizli Pipelined FPS, sifir imlec gecikmesi ve %100 Win32 Ctrl+C/V pano esitleme"
+  "notes": "AlfaDesk v1.8: Tek otomatik Crystal HD, Dirty-Rect/Tile Delta (100x kucuk paket), 0ms donanimsal imlec ve sifir kasma"
 }
